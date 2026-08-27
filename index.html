@@ -3,185 +3,275 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>日本逛街購物小清單 (OCR 測試版)</title>
-    <link rel="manifest" href="manifest.json">
-    <!-- 引入 Tesseract.js OCR 引擎 -->
-    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+    <title>日本購物小清單 (AI 智慧裁切版)</title>
     <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f8f9fa; margin: 0; padding: 15px; color: #333; max-width: 600px; margin: 0 auto; }
-        h1 { font-size: 1.3rem; text-align: center; margin-bottom: 15px; color: #2c3e50; }
-        
-        .form-box { background: #fff; padding: 15px; border-radius: 12px; margin-bottom: 20px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
-        .ocr-btn-box { border: 2px dashed #3498db; background: #ebf5fb; padding: 15px; text-align: center; border-radius: 8px; margin-bottom: 12px; cursor: pointer; }
-        .ocr-btn-box input { display: none; }
-        .ocr-btn-box label { font-weight: bold; color: #3498db; cursor: pointer; display: block; }
-        
-        .form-box input, .form-box textarea { width: 100%; padding: 8px; margin-bottom: 8px; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; font-size: 0.9rem; }
-        .form-box button { width: 100%; background: #27ae60; color: white; border: none; padding: 10px; border-radius: 6px; font-weight: bold; font-size: 1rem; cursor: pointer; }
+        :root {
+            --primary-color: #4CAF50;
+            --danger-color: #f44336;
+            --bg-color: #f4f4f9;
+            --border-color: #ddd;
+        }
 
-        .loading-status { font-size: 0.85rem; color: #e67e22; text-align: center; margin-bottom: 8px; font-weight: bold; }
+        body {
+            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
 
-        /* 卡片清單樣式 */
-        .card { background: #fff; border-radius: 12px; padding: 12px; margin-bottom: 12px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); display: flex; gap: 12px; align-items: center; position: relative; transition: 0.2s; }
-        .card.purchased { background: #e8f8f5; opacity: 0.75; }
-        .card.purchased .title { text-decoration: line-through; color: #7f8c8d; }
+        h1 { color: #333; margin-bottom: 10px; }
+
+        /* 上傳區域 */
+        .upload-section {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            text-align: center;
+            width: 90%;
+            max-width: 400px;
+            margin-bottom: 20px;
+        }
+
+        .file-label {
+            display: block;
+            border: 2px dashed var(--primary-color);
+            color: var(--primary-color);
+            padding: 30px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: bold;
+        }
+
+        .file-label:hover { background-color: #e8f5e9; }
+        #file-input { display: none; }
+
+        /* 載入與錯誤訊息 */
+        #loading, #error-msg { display: none; margin-top: 10px; font-weight: bold; }
+        #loading { color: #2196F3; }
+        #error-msg { color: var(--danger-color); }
+
+        /* 購物清單區域 */
+        #list-section {
+            width: 90%;
+            max-width: 600px;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        ul { list-style-type: none; padding: 0; }
+
+        li {
+            border-bottom: 1px solid var(--border-color);
+            padding: 10px 0;
+            display: flex;
+            align-items: flex-start; /* 對齊頂部 */
+        }
+
+        li:last-child { border-bottom: none; }
+
+        /* 裁切縮圖樣式 */
+        .item-thumb {
+            width: 60px; /* 固定寬度 */
+            height: 60px; /* 固定高度 */
+            object-fit: cover; /* 保持比例填滿 */
+            border-radius: 5px;
+            margin-right: 15px;
+            border: 1px solid #eee;
+            flex-shrink: 0; /* 防止縮小 */
+            background-color: #f0f0f0; /* 載入時底色 */
+        }
         
-        .card img { width: 80px; height: 80px; object-fit: cover; border-radius: 8px; background: #eee; flex-shrink: 0; }
-        .info { flex-grow: 1; }
-        .title { font-weight: bold; font-size: 1rem; margin-bottom: 4px; }
-        .price { color: #e74c3c; font-weight: bold; font-size: 0.95rem; }
-        .note { font-size: 0.85rem; color: #666; margin-top: 4px; }
-        
-        .actions { display: flex; flex-direction: column; gap: 6px; align-items: flex-end; }
-        .status-toggle { padding: 6px 10px; font-size: 0.8rem; border-radius: 20px; border: none; font-weight: bold; cursor: pointer; }
-        .status-unbought { background: #f39c12; color: white; }
-        .status-bought { background: #27ae60; color: white; }
-        .delete-btn { background: none; border: none; color: #ccc; font-size: 1.2rem; cursor: pointer; }
+        /* 如果沒有圖片時隱藏 */
+        .item-thumb[src=""], .item-thumb:not([src]) {
+             display: none;
+        }
+
+        .item-details { flex-grow: 1; }
+        .item-name { font-weight: bold; font-size: 1.1em; margin: 0 0 5px 0; }
+        .item-price { color: #e91e63; font-weight: bold; }
+        .item-note { color: #777; font-size: 0.9em; margin-top: 2px;}
+
+        /* 隱藏的 Canvas，用於裁切圖片 */
+        #crop-canvas { display: none; }
+
     </style>
 </head>
 <body>
 
-    <h1>🛒 日本逛街購物小清單 (OCR 測試版)</h1>
+    <h1>🛒 日本戰利品清單 (AI 裁切版)</h1>
 
-    <div class="form-box">
-        <div class="ocr-btn-box">
-            <label for="cameraInput">📸 拍照或上傳截圖 (自動 OCR 辨識)</label>
-            <input type="file" id="cameraInput" accept="image/*" onchange="handleImageUpload(event)">
-        </div>
-        
-        <div id="loadingStatus" class="loading-status" style="display: none;"></div>
-
-        <input type="text" id="name" placeholder="商品名稱 (可由 OCR 自動帶入)">
-        <input type="text" id="price" placeholder="價格 (可由 OCR 自動帶入)">
-        <input type="hidden" id="image" value="">
-        <textarea id="note" placeholder="備忘/買幾個/在哪看到..." rows="2"></textarea>
-        <button onclick="addItem()">加入清單</button>
+    <div class="upload-section">
+        <label for="file-input" class="file-label">
+            📸 拍照或上傳截圖 (自動裁切)
+        </label>
+        <input type="file" id="file-input" accept="image/*" capture="environment">
+        <div id="loading">⏳ AI 正在努力辨識與裁切圖片...</div>
+        <div id="error-msg">❌ 發生錯誤：未能成功辨識圖片</div>
     </div>
 
-    <div id="item-list"></div>
+    <div id="list-section">
+        <ul id="shopping-list">
+            <!-- 辨識結果將動態插入這裡 -->
+        </ul>
+    </div>
+
+    <!-- 這是關鍵：隱藏的 Canvas 元素，用來在瀏覽器端做圖片裁切 -->
+    <canvas id="crop-canvas"></canvas>
 
     <script>
-        let items = JSON.parse(localStorage.getItem('jp_shopping_list')) || [
-            { name: "路魯得 (Lulu) 喉嚨藥錠", price: "1280円", image: "https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=150", note: "藥妝店必買", purchased: false }
-        ];
+        // ⚠️ 請將此處替換為你實際部署好的 Cloudflare Worker URL
+        const WORKER_URL = "你的 Cloudflare Worker URL";
 
-        function render() {
-            const listEl = document.getElementById('item-list');
-            listEl.innerHTML = '';
-            
-            items.forEach((item, index) => {
-                listEl.innerHTML += `
-                    <div class="card ${item.purchased ? 'purchased' : ''}">
-                        <img src="${item.image || 'https://via.placeholder.com/80'}" onerror="this.src='https://via.placeholder.com/80'">
-                        <div class="info">
-                            <div class="title">${item.name}</div>
-                            <div class="price">${item.price}</div>
-                            <div class="note">${item.note}</div>
-                        </div>
-                        <div class="actions">
-                            <button class="delete-btn" onclick="deleteItem(${index})">×</button>
-                            <button class="status-toggle ${item.purchased ? 'status-bought' : 'status-unbought'}" onclick="toggleStatus(${index})">
-                                ${item.purchased ? '已購買 ✔️' : '未購買 ⏳'}
-                            </button>
-                        </div>
-                    </div>
-                `;
-            });
-            localStorage.setItem('jp_shopping_list', JSON.stringify(items));
-        }
+        const fileInput = document.getElementById('file-input');
+        const shoppingList = document.getElementById('shopping-list');
+        const loadingText = document.getElementById('loading');
+        const errorMsg = document.getElementById('error-msg');
+        const cropCanvas = document.getElementById('crop-canvas');
+        const ctx = cropCanvas.getContext('2d');
 
-                async function handleImageUpload(event) {
+        fileInput.addEventListener('change', handleImageUpload);
+
+        async function handleImageUpload(event) {
             const file = event.target.files[0];
             if (!file) return;
 
-            const reader = new FileReader();
-            reader.onload = async function(e) {
-                const base64Image = e.target.result;
-                document.getElementById('image').value = base64Image;
+            // 重置UI狀態
+            shoppingList.innerHTML = '';
+            errorMsg.style.display = 'none';
+            loadingText.style.display = 'block';
+            fileInput.value = ''; // 允許重複上傳同一張檔名
 
-                const statusEl = document.getElementById('loadingStatus');
-                statusEl.style.display = 'block';
-                statusEl.innerText = '🤖 正在透過 Gemini AI 解析多個商品與價格，請稍候...';
+            try {
+                // 1. 將圖片轉為 Base64 字串
+                const base64Image = await fileToBase64(file);
+                
+                // 2. 將 Base64 送往後端 Worker 進行 AI 辨識
+                const response = await fetch(WORKER_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ image: base64Image })
+                });
 
-                try {
-                    // 呼叫你的 Cloudflare Worker 後端
-                    const workerUrl = 'https://jpprice-ocr.neptune8264.workers.dev';
-                    
-                    const response = await fetch(workerUrl, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ image: base64Image })
-                    });
+                const data = await response.json();
 
-                    const data = await response.json();
-                    
-                    if (data.error) {
-                        throw new Error(data.error);
-                    }
-
-                    if (data.items && data.items.length > 0) {
-                        statusEl.innerText = `✅ 成功辨識出 ${data.items.length} 個商品！`;
-                        setTimeout(() => { statusEl.style.display = 'none'; }, 3000);
-
-                        // 自動將 AI 拆解出來的多個商品全部加入清單中
-                        data.items.forEach(item => {
-                            items.unshift({
-                                name: item.name || "未命名商品",
-                                price: item.price || "未標示",
-                                image: base64Image,
-                                note: item.note || "AI 自動辨識",
-                                purchased: false
-                            });
-                        });
-
-                        render();
-                    } else {
-                        statusEl.innerText = '⚠️ 沒有在圖片中找到商品，請手動填寫';
-                    }
-
-                                } catch (error) {
-                    console.error(error);
-                    statusEl.innerText = '❌ AI 辨識失敗：' + error.message;
+                if (!response.ok || data.error) {
+                    throw new Error(data.error || 'Worker response not ok');
                 }
 
-            };
-            reader.readAsDataURL(file);
+                // 3. 成功取得資料，開始渲染清單並執行客戶端裁切
+                await renderListWithCrops(data.items, base64Image);
+
+            } catch (err) {
+                console.error(err);
+                errorMsg.innerText = '❌ 辨識失敗: ' + err.message;
+                errorMsg.style.display = 'block';
+            } finally {
+                loadingText.style.display = 'none';
+            }
         }
 
+        // 將 File 物件轉為 Base64
+        function fileToBase64(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.readAsDataURL(file);
+                reader.onload = () => resolve(reader.result);
+                reader.onerror = error => reject(error);
+            });
+        }
 
-        function addItem() {
-            const name = document.getElementById('name').value;
-            const price = document.getElementById('price').value;
-            const image = document.getElementById('image').value;
-            const note = document.getElementById('note').value;
-
-            if (!name) {
-                alert('請至少填寫商品名稱！');
+        // 核心函數：渲染清單並在前端執行圖片裁切
+        async function renderListWithCrops(items, originalBase64) {
+            // 如果沒有回傳任何商品
+            if (!items || items.length === 0) {
+                shoppingList.innerHTML = '<li><em>AI 沒有識別到商品</em></li>';
                 return;
             }
 
-            items.unshift({ name, price, image, note, purchased: false });
-            render();
+            // 先將原始 Base64 圖片載入 Image 物件，供後續 Canvas 使用
+            const originalImg = new Image();
+            originalImg.src = originalBase64;
+            await originalImg.decode(); // 等待圖片解碼完成
 
-            document.getElementById('name').value = '';
-            document.getElementById('price').value = '';
-            document.getElementById('image').value = '';
-            document.getElementById('note').value = '';
-        }
+            // 遍歷每一個商品，產生對應的 HTML DOM
+            for (const item of items) {
+                const li = document.createElement('li');
 
-        function toggleStatus(index) {
-            items[index].purchased = !items[index].purchased;
-            render();
-        }
+                // 建立一個 img 元素，準備放入裁切後的小圖
+                const imgThumb = document.createElement('img');
+                imgThumb.className = 'item-thumb';
 
-        function deleteItem(index) {
-            if(confirm('確定要刪除這個商品嗎？')) {
-                items.splice(index, 1);
-                render();
+                // 關鍵：如果有回傳座標 (box_2d)，則執行客戶端裁切
+                if (item.box_2d && item.box_2d.length === 4) {
+                    try {
+                        // 將歸一化座標 [ymin, xmin, ymax, xmax] (0-100) 轉為 Canvas 像素座標
+                        const [ymin, xmin, ymax, xmax] = item.box_2d;
+                        
+                        const scaleX = originalImg.naturalWidth / 100;
+                        const scaleY = originalImg.naturalHeight / 100;
+
+                        const cropX = xmin * scaleX;
+                        const cropY = ymin * scaleY;
+                        const cropWidth = (xmax - xmin) * scaleX;
+                        const cropHeight = (ymax - ymin) * scaleY;
+
+                        // 安全檢查：確保裁切範圍大於0
+                        if (cropWidth > 0 && cropHeight > 0) {
+                            // 設定 Canvas 尺寸為裁切後的大小
+                            cropCanvas.width = cropWidth;
+                            cropCanvas.height = cropHeight;
+
+                            // 將原始圖片的指定區域繪製到 Canvas 上
+                            ctx.drawImage(
+                                originalImg,
+                                cropX, cropY, cropWidth, cropHeight, // 原始圖片裁切區域
+                                0, 0, cropWidth, cropHeight // 繪製到 Canvas 的位置與大小
+                            );
+
+                            // 將 Canvas 內容轉為 Base64 小圖並設定給 img 標籤
+                            imgThumb.src = cropCanvas.toDataURL('image/jpeg', 0.8); // 0.8 品質
+                        }
+
+                    } catch (cropErr) {
+                        console.error("客戶端裁切失敗:", cropErr);
+                        // 裁切失敗不影響文字顯示，只是不會顯示小圖
+                    }
+                }
+
+                // 建立文字詳細資料區域
+                const detailsDiv = document.createElement('div');
+                detailsDiv.className = 'item-details';
+
+                const nameP = document.createElement('p');
+                nameP.className = 'item-name';
+                nameP.innerText = item.name || '未命名商品';
+
+                const priceSpan = document.createElement('span');
+                priceSpan.className = 'item-price';
+                priceSpan.innerText = item.price || '未標示';
+                
+                const noteP = document.createElement('p');
+                noteP.className = 'item-note';
+                noteP.innerText = item.note || '';
+
+                // 組裝 HTML 結構
+                detailsDiv.appendChild(nameP);
+                detailsDiv.appendChild(priceSpan);
+                if (item.note) detailsDiv.appendChild(noteP);
+
+                li.appendChild(imgThumb); // 插入裁切縮圖
+                li.appendChild(detailsDiv); // 插入文字區域
+                shoppingList.appendChild(li);
             }
         }
-
-        render();
     </script>
 </body>
 </html>
