@@ -12,20 +12,23 @@
 
     <style>
         :root {
-            --text-main: #4a3b3c;
-            --text-sub: #8c7879;
-            --border-color: rgba(255, 182, 193, 0.35);
-            --theme-primary: #ff5c8a;
-            --danger-color: #e53935;
+            --text-main: #3d3132;
+            --text-sub: #826e71;
+            --border-glass: rgba(255, 255, 255, 0.6);
+            --bg-glass: rgba(255, 255, 255, 0.45);
+            --bg-glass-hover: rgba(255, 255, 255, 0.65);
+            --theme-primary: #e64a75;
+            --danger-color: #d32f2f;
         }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-            background: linear-gradient(135deg, #fff0f3 0%, #ffe4e9 50%, #ffd1dc 100%);
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Icons", "Helvetica Neue", Helvetica, Arial, sans-serif;
+            background: linear-gradient(135deg, #fff2f5 0%, #ffe6ec 50%, #ffd6e0 100%);
             color: var(--text-main);
             margin: 0; padding: 0;
             display: flex; flex-direction: column; align-items: center;
             position: relative; min-height: 100vh;
+            letter-spacing: 0.3px;
         }
 
         #seasonal-canvas {
@@ -37,150 +40,159 @@
             position: relative; z-index: 10;
         }
 
+        /* 頂部導覽列：極緻毛玻璃與微光邊框 */
         .navbar {
-            width: 100%; background: rgba(255, 255, 255, 0.5);
-            backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
-            padding: 14px 20px; border-bottom: 1px solid var(--border-color);
+            width: 100%; background: rgba(255, 255, 255, 0.35);
+            backdrop-filter: blur(25px); -webkit-backdrop-filter: blur(25px);
+            padding: 16px 24px; border-bottom: 1px solid rgba(255, 255, 255, 0.5);
             display: flex; align-items: center; justify-content: space-between;
             box-sizing: border-box; position: sticky; top: 0;
+            box-shadow: 0 4px 30px rgba(230, 74, 117, 0.03);
         }
 
-        .menu-btn { background: none; border: none; font-size: 1.3em; cursor: pointer; color: var(--text-main); padding: 0; }
-        .nav-title { font-size: 1.05em; font-weight: 600; margin: 0; letter-spacing: 1px; }
+        .menu-btn { background: none; border: none; font-size: 1.25em; cursor: pointer; color: var(--text-main); padding: 0; opacity: 0.8; transition: opacity 0.2s; }
+        .menu-btn:hover { opacity: 1; }
+        .nav-title { font-size: 1em; font-weight: 500; margin: 0; letter-spacing: 1.2px; color: var(--text-main); }
 
         .container {
-            width: 92%; max-width: 540px;
+            width: 90%; max-width: 500px;
             display: flex; flex-direction: column; gap: 20px;
-            padding: 24px 0; box-sizing: border-box;
+            padding: 28px 0; box-sizing: border-box;
         }
 
         .upload-section { text-align: center; width: 100%; }
 
+        /* 上傳按鈕：半透明選品店風格 */
         .file-label {
-            display: flex; align-items: center; justify-content: center; gap: 12px;
-            background: rgba(255, 255, 255, 0.75);
-            backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
-            color: var(--text-main); padding: 20px 24px; border-radius: 24px; cursor: pointer;
-            font-weight: 600; font-size: 1.05em; transition: all 0.25s ease;
-            border: 1px solid rgba(255, 255, 255, 0.9);
-            box-shadow: 0 10px 30px rgba(255, 92, 138, 0.12);
+            display: flex; align-items: center; justify-content: center; gap: 10px;
+            background: var(--bg-glass);
+            backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+            color: var(--text-main); padding: 22px 24px; border-radius: 20px; cursor: pointer;
+            font-weight: 500; font-size: 0.95em; transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+            border: 1px solid var(--border-glass);
+            box-shadow: 0 10px 40px rgba(230, 74, 117, 0.06);
         }
         .file-label:hover {
-            background: rgba(255, 255, 255, 0.9);
+            background: var(--bg-glass-hover);
             transform: translateY(-2px);
-            box-shadow: 0 14px 35px rgba(255, 92, 138, 0.2);
+            box-shadow: 0 15px 45px rgba(230, 74, 117, 0.12);
+            border-color: rgba(255, 255, 255, 0.9);
         }
-        .file-label span.icon { font-size: 1.4em; }
+        .file-label span.icon { font-size: 1.25em; }
         #file-input { display: none; }
 
-        #loading, #error-msg { display: none; margin-top: 10px; font-size: 0.9em; font-weight: 500; }
+        #loading, #error-msg { display: none; margin-top: 12px; font-size: 0.85em; font-weight: 500; letter-spacing: 0.5px; }
         #loading { color: var(--theme-primary); }
         #error-msg { color: var(--danger-color); }
 
+        /* 卡片容器：高通透毛玻璃，讓背景竹林若隱若現 */
         .card-section {
             width: 100%; 
-            background: rgba(255, 255, 255, 0.65);
-            backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
-            border-radius: 24px; border: 1px solid rgba(255, 255, 255, 0.85);
-            padding: 20px; box-sizing: border-box;
-            box-shadow: 0 12px 35px rgba(255, 92, 138, 0.1);
+            background: rgba(255, 255, 255, 0.42);
+            backdrop-filter: blur(22px); -webkit-backdrop-filter: blur(22px);
+            border-radius: 22px; border: 1px solid rgba(255, 255, 255, 0.65);
+            padding: 22px; box-sizing: border-box;
+            box-shadow: 0 15px 45px rgba(230, 74, 117, 0.05);
         }
 
         .card-header {
             display: flex; justify-content: space-between; align-items: center;
-            font-weight: 600; font-size: 0.95em; border-bottom: 1px solid var(--border-color);
-            padding-bottom: 12px; margin-bottom: 4px; color: var(--text-main);
+            font-weight: 500; font-size: 0.9em; letter-spacing: 0.8px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.5);
+            padding-bottom: 14px; margin-bottom: 6px; color: var(--text-sub);
         }
 
         ul { list-style: none; padding: 0; margin: 0; }
         li {
-            border-bottom: 1px solid var(--border-color); padding: 12px 0;
-            display: flex; align-items: center; gap: 12px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.35); padding: 14px 0;
+            display: flex; align-items: center; gap: 14px;
         }
         li:first-child { border-top: none; }
         li:last-child { border-bottom: none; }
 
         .item-thumb {
-            width: 52px; height: 52px; object-fit: cover; border-radius: 12px;
-            border: 1px solid rgba(255, 255, 255, 0.9); flex-shrink: 0; background: #fff;
+            width: 48px; height: 48px; object-fit: cover; border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.8); flex-shrink: 0; background: rgba(255,255,255,0.5);
         }
         .item-thumb:not([src]), .item-thumb[src=""] { display: none; }
 
         .item-details { flex-grow: 1; min-width: 0; }
-        .item-name { font-weight: 600; font-size: 0.95em; margin: 0 0 2px 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .item-price { color: var(--theme-primary); font-weight: 600; font-size: 0.9em; }
-        .item-note { color: var(--text-sub); font-size: 0.8em; margin-top: 2px; }
+        .item-name { font-weight: 500; font-size: 0.92em; margin: 0 0 3px 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--text-main); }
+        .item-price { color: var(--theme-primary); font-weight: 500; font-size: 0.88em; }
+        .item-note { color: var(--text-sub); font-size: 0.78em; margin-top: 2px; }
 
-        .purchase-input-group { display: flex; align-items: center; gap: 6px; margin-top: 6px; font-size: 0.85em; color: var(--text-sub); }
-        .purchase-input { width: 90px; padding: 4px 8px; border: 1px solid var(--border-color); border-radius: 8px; font-size: 0.9em; outline: none; background: rgba(255,255,255,0.8); }
-        .purchase-input:focus { border-color: var(--theme-primary); }
+        .purchase-input-group { display: flex; align-items: center; gap: 6px; margin-top: 6px; font-size: 0.82em; color: var(--text-sub); }
+        .purchase-input { width: 85px; padding: 5px 8px; border: 1px solid rgba(255,255,255,0.7); border-radius: 8px; font-size: 0.88em; outline: none; background: rgba(255,255,255,0.5); color: var(--text-main); }
+        .purchase-input:focus { border-color: var(--theme-primary); background: rgba(255,255,255,0.8); }
 
-        li.checked-item { background: rgba(255, 255, 255, 0.2); padding: 12px 8px; border-radius: 12px; border-bottom: none; opacity: 0.5; }
+        li.checked-item { background: rgba(255, 255, 255, 0.15); padding: 14px 8px; border-radius: 12px; border-bottom: none; opacity: 0.45; }
         li.checked-item .item-name { color: #555; }
         li.checked-item .item-price { color: #888; }
         li.checked-item .item-thumb { filter: grayscale(100%); }
 
         .item-actions { display: flex; gap: 6px; flex-shrink: 0; }
         .action-btn {
-            background: rgba(255, 255, 255, 0.7); color: var(--theme-primary); border: 1px solid var(--theme-primary);
-            padding: 6px 12px; border-radius: 10px; cursor: pointer; font-size: 0.8em; font-weight: 500; transition: all 0.2s;
+            background: rgba(255, 255, 255, 0.5); color: var(--theme-primary); border: 1px solid rgba(230, 74, 117, 0.3);
+            padding: 6px 12px; border-radius: 10px; cursor: pointer; font-size: 0.78em; font-weight: 500; transition: all 0.2s;
         }
-        .action-btn:hover { background: var(--theme-primary); color: white; }
-        .danger-btn { color: var(--danger-color); border-color: var(--danger-color); }
-        .danger-btn:hover { background: var(--danger-color); color: white; }
+        .action-btn:hover { background: var(--theme-primary); color: white; border-color: var(--theme-primary); }
+        .danger-btn { color: var(--danger-color); border-color: rgba(211, 47, 47, 0.3); }
+        .danger-btn:hover { background: var(--danger-color); color: white; border-color: var(--danger-color); }
 
+        /* 側邊欄抽屜 */
         .drawer {
-            position: fixed; top: 0; left: -100%; width: 80%; max-width: 300px; height: 100%;
-            background: rgba(255, 255, 255, 0.92); backdrop-filter: blur(20px);
-            border-right: 1px solid var(--border-color);
-            z-index: 1000; transition: left 0.25s ease; box-sizing: border-box; padding: 24px;
-            display: flex; flex-direction: column; box-shadow: 10px 0 30px rgba(0,0,0,0.05);
+            position: fixed; top: 0; left: -100%; width: 80%; max-width: 280px; height: 100%;
+            background: rgba(255, 255, 255, 0.75); backdrop-filter: blur(30px); -webkit-backdrop-filter: blur(30px);
+            border-right: 1px solid rgba(255, 255, 255, 0.6);
+            z-index: 1000; transition: left 0.3s cubic-bezier(0.16, 1, 0.3, 1); box-sizing: border-box; padding: 24px;
+            display: flex; flex-direction: column; box-shadow: 20px 0 50px rgba(0,0,0,0.04);
         }
         .drawer.open { left: 0; }
-        .drawer-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 12px; margin-bottom: 12px; }
-        .drawer-header h3 { margin: 0; font-size: 1em; }
-        .close-btn { background: none; border: none; font-size: 1.2em; cursor: pointer; color: var(--text-sub); }
+        .drawer-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.5); padding-bottom: 14px; margin-bottom: 10px; }
+        .drawer-header h3 { margin: 0; font-size: 0.95em; font-weight: 500; letter-spacing: 0.8px; }
+        .close-btn { background: none; border: none; font-size: 1.1em; cursor: pointer; color: var(--text-sub); }
         .drawer-content { flex-grow: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 4px; }
-        .menu-section-title { font-weight: 600; color: var(--text-sub); margin: 16px 0 6px 0; font-size: 0.85em; }
+        .menu-section-title { font-weight: 500; color: var(--text-sub); margin: 18px 0 6px 0; font-size: 0.8em; letter-spacing: 0.5px; }
 
         .menu-item-link {
             display: block; padding: 10px 12px; border-radius: 10px; text-decoration: none;
-            color: var(--text-main); font-weight: 500; font-size: 0.9em; transition: background 0.15s;
+            color: var(--text-main); font-weight: 400; font-size: 0.88em; transition: all 0.15s;
         }
-        .menu-item-link:hover { background: rgba(255, 92, 138, 0.1); color: var(--theme-primary); }
+        .menu-item-link:hover { background: rgba(230, 74, 117, 0.08); color: var(--theme-primary); }
 
         .primary-full-btn {
             background: var(--theme-primary); color: white; border: none; padding: 12px;
-            border-radius: 12px; cursor: pointer; width: 100%; font-weight: 500; font-size: 0.9em; margin-top: 16px;
-            box-shadow: 0 4px 15px rgba(255, 92, 138, 0.3);
+            border-radius: 12px; cursor: pointer; width: 100%; font-weight: 500; font-size: 0.88em; margin-top: 16px;
+            box-shadow: 0 6px 20px rgba(230, 74, 117, 0.25); transition: opacity 0.2s;
         }
         .primary-full-btn:hover { opacity: 0.9; }
 
-        .overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(74, 59, 60, 0.25); backdrop-filter: blur(2px); display: none; z-index: 999; }
+        .overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(61, 49, 50, 0.15); backdrop-filter: blur(4px); display: none; z-index: 999; }
         .overlay.show { display: block; }
 
+        /* 彈跳視窗 */
         .modal {
             position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
-            background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(20px);
+            background: rgba(255, 255, 255, 0.82); backdrop-filter: blur(30px); -webkit-backdrop-filter: blur(30px);
             padding: 24px; border-radius: 24px;
-            border: 1px solid rgba(255, 255, 255, 0.9); box-shadow: 0 15px 40px rgba(255, 92, 138, 0.2);
-            z-index: 1100; width: 88%; max-width: 360px; max-height: 80vh;
+            border: 1px solid rgba(255, 255, 255, 0.8); box-shadow: 0 20px 50px rgba(230, 74, 117, 0.12);
+            z-index: 1100; width: 85%; max-width: 340px; max-height: 80vh;
             display: none; box-sizing: border-box; flex-direction: column;
         }
         .modal.show { display: flex; }
-        .modal h3 { margin: 0 0 16px 0; font-size: 1.05em; text-align: center; }
+        .modal h3 { margin: 0 0 16px 0; font-size: 1em; font-weight: 500; text-align: center; letter-spacing: 0.5px; }
         .modal-list-container { overflow-y: auto; display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px; flex-grow: 1; }
         .modal-list-item {
-            padding: 12px 14px; background: rgba(255, 240, 243, 0.6); border: 1px solid var(--border-color);
-            border-radius: 12px; font-size: 0.95em; font-weight: 500; cursor: pointer; text-align: center; color: var(--text-main);
+            padding: 12px 14px; background: rgba(255, 255, 255, 0.5); border: 1px solid rgba(255,255,255,0.7);
+            border-radius: 12px; font-size: 0.9em; font-weight: 500; cursor: pointer; text-align: center; color: var(--text-main); transition: all 0.2s;
         }
         .modal-list-item:hover { background: var(--theme-primary); color: white; border-color: var(--theme-primary); }
-        .modal-item-row { display: flex; align-items: center; justify-content: space-between; padding: 8px 10px; background: rgba(255, 240, 243, 0.6); border: 1px solid var(--border-color); border-radius: 12px; gap: 8px; }
+        .modal-item-row { display: flex; align-items: center; justify-content: space-between; padding: 8px 10px; background: rgba(255, 255, 255, 0.5); border: 1px solid rgba(255,255,255,0.7); border-radius: 12px; gap: 8px; }
         .modal-item-info { display: flex; align-items: center; gap: 8px; flex-grow: 1; min-width: 0; }
-        .modal-item-info img { width: 40px; height: 40px; object-fit: cover; border-radius: 8px; }
-        .modal-item-text { font-size: 0.85em; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .modal-close-btn { width: 100%; padding: 10px; background: rgba(0,0,0,0.05); border: none; border-radius: 12px; font-size: 0.9em; cursor: pointer; color: var(--text-sub); }
-        .modal-close-btn:hover { background: rgba(0,0,0,0.1); }
+        .modal-item-info img { width: 38px; height: 38px; object-fit: cover; border-radius: 8px; }
+        .modal-item-text { font-size: 0.82em; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .modal-close-btn { width: 100%; padding: 10px; background: rgba(0,0,0,0.04); border: none; border-radius: 12px; font-size: 0.88em; cursor: pointer; color: var(--text-sub); transition: background 0.2s; }
+        .modal-close-btn:hover { background: rgba(0,0,0,0.08); }
         #crop-canvas { display: none; }
     </style>
 </head>
@@ -255,6 +267,7 @@
             fileInput.addEventListener('change', handleImageUpload);
         });
 
+        // 質感升級的背景：夏秋之際柔和竹林光影 + 飄落花瓣微風意象
         function initSeasonalBackground() {
             const canvas = document.getElementById('seasonal-canvas');
             const sCtx = canvas.getContext('2d');
@@ -269,8 +282,8 @@
             let particles = Array.from({ length: 20 }, () => ({
                 x: Math.random() * canvas.width,
                 y: Math.random() * canvas.height,
-                radius: Math.random() * 8 + 3,
-                speedY: Math.random() * 0.3 + 0.1,
+                radius: Math.random() * 5 + 2,
+                speedY: Math.random() * 0.35 + 0.1,
                 speedX: Math.random() * 0.3 - 0.15,
                 opacity: Math.random() * 0.4 + 0.15
             }));
@@ -279,46 +292,53 @@
 
             function animate() {
                 sCtx.clearRect(0, 0, canvas.width, canvas.height);
-                time += 0.02;
+                time += 0.015;
 
                 sCtx.save();
                 
-                // 1. 竹林剪影
-                sCtx.fillStyle = 'rgba(120, 140, 125, 0.12)';
-                const bambooCount = Math.floor(canvas.width / 50);
+                // 1. 極致柔和的日系竹林光影（低透明度、質感暈染）
+                const bambooCount = Math.floor(canvas.width / 55);
                 for (let i = 0; i < bambooCount; i++) {
-                    let bx = i * 65 + (i % 3) * 15;
-                    let bWidth = 6 + (i % 3) * 2;
-                    sCtx.fillRect(bx, canvas.height * 0.4, bWidth, canvas.height * 0.6);
-                    sCtx.fillStyle = 'rgba(90, 110, 95, 0.18)';
-                    for (let j = 0; j < canvas.height; j += 80) {
-                        sCtx.fillRect(bx - 1, canvas.height * 0.4 + j, bWidth + 2, 3);
+                    let bx = i * 65 + (i * 11) % 30;
+                    let bWidth = 4 + (i % 2) * 2;
+                    
+                    sCtx.fillStyle = 'rgba(160, 110, 120, 0.05)';
+                    sCtx.fillRect(bx, canvas.height * 0.3, bWidth, canvas.height * 0.7);
+                    
+                    // 竹節
+                    sCtx.fillStyle = 'rgba(130, 80, 90, 0.08)';
+                    for (let j = 0; j < canvas.height; j += 100) {
+                        sCtx.fillRect(bx - 1, canvas.height * 0.3 + j, bWidth + 2, 2);
                     }
-                    sCtx.fillStyle = 'rgba(120, 140, 125, 0.12)';
                 }
 
-                // 2. 鳥居剪影
-                let toriiX = canvas.width - 120;
-                let toriiY = canvas.height - 180;
-                sCtx.fillStyle = 'rgba(140, 95, 100, 0.14)';
-                sCtx.fillRect(toriiX, toriiY + 30, 8, 150);
-                sCtx.fillRect(toriiX + 45, toriiY + 30, 8, 150);
+                // 2. 右下角優雅鳥居意象剪影
+                let toriiX = canvas.width - 100;
+                let toriiY = canvas.height - 160;
+                sCtx.fillStyle = 'rgba(180, 85, 100, 0.06)';
+                
+                sCtx.fillRect(toriiX, toriiY + 20, 5, 140);
+                sCtx.fillRect(toriiX + 35, toriiY + 20, 5, 140);
+                
                 sCtx.beginPath();
-                sCtx.moveTo(toriiX - 15, toriiY + 25);
-                sCtx.lineTo(toriiX + 68, toriiY + 25);
-                sCtx.lineTo(toriiX + 58, toriiY + 35);
-                sCtx.lineTo(toriiX - 5, toriiY + 35);
+                sCtx.moveTo(toriiX - 10, toriiY + 16);
+                sCtx.lineTo(toriiX + 48, toriiY + 16);
+                sCtx.lineTo(toriiX + 42, toriiY + 22);
+                sCtx.lineTo(toriiX - 4, toriiY + 22);
                 sCtx.closePath();
                 sCtx.fill();
-                sCtx.fillRect(toriiX - 8, toriiY + 45, 69, 6);
-                sCtx.fillRect(toriiX + 4, toriiY + 75, 45, 5);
+                
+                sCtx.fillRect(toriiX - 5, toriiY + 30, 47, 3.5);
+                sCtx.fillRect(toriiX + 15, toriiY + 36, 8, 10);
+                sCtx.fillRect(toriiX - 2, toriiY + 56, 41, 3);
 
                 sCtx.restore();
 
+                // 3. 微風飄落花瓣／光點
                 particles.forEach(p => {
                     sCtx.save();
                     sCtx.globalAlpha = p.opacity;
-                    sCtx.fillStyle = '#ff758c';
+                    sCtx.fillStyle = '#ff4d79';
                     sCtx.beginPath();
                     sCtx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
                     sCtx.fill();
@@ -466,12 +486,12 @@
             const history = JSON.parse(localStorage.getItem('all_shopping_history') || '[]');
             mainContainer.innerHTML = `<div class="card-section"><div class="card-header">所有拍照紀錄</div><div id="history-content" style="margin-top:10px;"></div></div>`;
             const container = document.getElementById('history-content');
-            if (!history.length) { container.innerHTML = '<p style="color:var(--text-sub); font-size:0.9em;"><em>尚無價格庫紀錄</em></p>'; return; }
+            if (!history.length) { container.innerHTML = '<p style="color:var(--text-sub); font-size:0.88em;"><em>尚無價格庫紀錄</em></p>'; return; }
 
             history.forEach((batch, bIdx) => {
                 const group = document.createElement('div');
                 group.style.marginBottom = "16px";
-                group.innerHTML = `<p style="font-weight:600; color:var(--text-sub); font-size:0.85em; margin:0 0 6px 0;">${batch.time}</p>`;
+                group.innerHTML = `<p style="font-weight:500; color:var(--text-sub); font-size:0.8em; margin:0 0 6px 0;">${batch.time}</p>`;
                 const ul = document.createElement('ul');
                 batch.items.forEach(item => ul.appendChild(createItemNode(item, 'history', false, null, bIdx)));
                 group.appendChild(ul); container.appendChild(group);
@@ -599,7 +619,7 @@
             const lists = JSON.parse(localStorage.getItem('custom_shopping_lists') || '{}');
             const items = lists[name] || [];
             const ul = document.getElementById('custom-list-items');
-            if (!items.length) { ul.innerHTML = '<li><em style="color:var(--text-sub); font-size:0.9em;">此清單目前沒有物品</em></li>'; return; }
+            if (!items.length) { ul.innerHTML = '<li><em style="color:var(--text-sub); font-size:0.88em;">此清單目前沒有物品</em></li>'; return; }
             items.forEach(e => ul.appendChild(createItemNode(e.item, 'custom', e.checked, name)));
         }
 
@@ -612,7 +632,7 @@
             const items = Array.from(map.values());
             
             if (!items.length) {
-                container.innerHTML = '<p style="text-align:center; color:var(--text-sub); font-size:0.9em; padding:20px;">價格庫中尚無商品</p>';
+                container.innerHTML = '<p style="text-align:center; color:var(--text-sub); font-size:0.88em; padding:20px;">價格庫中尚無商品</p>';
             } else {
                 items.forEach(i => {
                     const row = document.createElement('div'); row.className = 'modal-item-row';
