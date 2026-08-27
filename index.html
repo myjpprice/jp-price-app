@@ -9,7 +9,7 @@
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f8f9fa; margin: 0; padding: 15px; color: #333; max-width: 600px; margin: 0 auto; }
         h1 { font-size: 1.3rem; text-align: center; margin-bottom: 15px; color: #2c3e50; }
         
-        /* 拍照與新增表單區 */
+        /* 上傳與新增表單區 */
         .form-box { background: #fff; padding: 15px; border-radius: 12px; margin-bottom: 20px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
         .ocr-btn-box { border: 2px dashed #3498db; background: #ebf5fb; padding: 15px; text-align: center; border-radius: 8px; margin-bottom: 12px; cursor: pointer; }
         .ocr-btn-box input { display: none; }
@@ -41,12 +41,12 @@
 
     <h1>🛒 日本逛街購物小清單</h1>
 
-    <!-- 拍照 / 建立區 -->
+    <!-- 上傳/拍照區 -->
     <div class="form-box">
-        <!-- OCR 模擬/上傳區 -->
         <div class="ocr-btn-box">
-            <label for="cameraInput">📸 點擊拍照 / 上傳價牌照片 (OCR 準備中)</label>
-            <input type="file" id="cameraInput" accept="image/*" capture="environment" onchange="handleImageUpload(event)">
+            <label for="cameraInput">📸 拍照或上傳截圖/照片</label>
+            <!-- 拿掉 capture 屬性，讓手機可以選擇相機或相簿截圖 -->
+            <input type="file" id="cameraInput" accept="image/*" onchange="handleImageUpload(event)">
         </div>
 
         <input type="text" id="name" placeholder="商品名稱 (例: 參天眼藥水)">
@@ -60,7 +60,6 @@
     <div id="item-list"></div>
 
     <script>
-        // 初始範例資料包含 purchased 狀態 (false = 未買, true = 已買)
         let items = JSON.parse(localStorage.getItem('jp_shopping_list')) || [
             { name: "路魯得 (Lulu) 喉嚨藥錠", price: "1280円", image: "https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=150", note: "藥妝店必買", purchased: false }
         ];
@@ -90,17 +89,15 @@
             localStorage.setItem('jp_shopping_list', JSON.stringify(items));
         }
 
-        // 模擬圖片上傳與未來接 OCR 的接口
         function handleImageUpload(event) {
             const file = event.target.files[0];
             if (file) {
                 const reader = new FileReader();
                 reader.onload = function(e) {
                     document.getElementById('image').value = e.target.result;
-                    // 這裡預留未來串接 OCR 的位置，目前先自動帶入預設名稱方便測試
-                    document.getElementById('name').value = "OCR 辨識商品 (測試)";
+                    document.getElementById('name').value = "上傳截圖商品 (測試)";
                     document.getElementById('price').value = "500円";
-                    alert('照片已載入！未來此處將自動執行 OCR 辨識文字。');
+                    alert('圖片/截圖已成功載入！');
                 }
                 reader.readAsDataURL(file);
             }
@@ -120,7 +117,6 @@
             items.unshift({ name, price, image, note, purchased: false });
             render();
 
-            // 清空輸入框
             document.getElementById('name').value = '';
             document.getElementById('price').value = '';
             document.getElementById('image').value = '';
