@@ -3,13 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>日本逛街購物小清單</title>
+    <title>日本逛街購物小清單 (OCR 測試版)</title>
     <link rel="manifest" href="manifest.json">
+    <!-- 引入 Tesseract.js OCR 引擎 -->
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
     <style>
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f8f9fa; margin: 0; padding: 15px; color: #333; max-width: 600px; margin: 0 auto; }
         h1 { font-size: 1.3rem; text-align: center; margin-bottom: 15px; color: #2c3e50; }
         
-        /* 上傳與新增表單區 */
         .form-box { background: #fff; padding: 15px; border-radius: 12px; margin-bottom: 20px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
         .ocr-btn-box { border: 2px dashed #3498db; background: #ebf5fb; padding: 15px; text-align: center; border-radius: 8px; margin-bottom: 12px; cursor: pointer; }
         .ocr-btn-box input { display: none; }
@@ -17,6 +18,8 @@
         
         .form-box input, .form-box textarea { width: 100%; padding: 8px; margin-bottom: 8px; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; font-size: 0.9rem; }
         .form-box button { width: 100%; background: #27ae60; color: white; border: none; padding: 10px; border-radius: 6px; font-weight: bold; font-size: 1rem; cursor: pointer; }
+
+        .loading-status { font-size: 0.85rem; color: #e67e22; text-align: center; margin-bottom: 8px; font-weight: bold; }
 
         /* 卡片清單樣式 */
         .card { background: #fff; border-radius: 12px; padding: 12px; margin-bottom: 12px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); display: flex; gap: 12px; align-items: center; position: relative; transition: 0.2s; }
@@ -29,7 +32,6 @@
         .price { color: #e74c3c; font-weight: bold; font-size: 0.95rem; }
         .note { font-size: 0.85rem; color: #666; margin-top: 4px; }
         
-        /* 狀態按鈕與刪除 */
         .actions { display: flex; flex-direction: column; gap: 6px; align-items: flex-end; }
         .status-toggle { padding: 6px 10px; font-size: 0.8rem; border-radius: 20px; border: none; font-weight: bold; cursor: pointer; }
         .status-unbought { background: #f39c12; color: white; }
@@ -39,24 +41,23 @@
 </head>
 <body>
 
-    <h1>🛒 日本逛街購物小清單</h1>
+    <h1>🛒 日本逛街購物小清單 (OCR 測試版)</h1>
 
-    <!-- 上傳/拍照區 -->
     <div class="form-box">
         <div class="ocr-btn-box">
-            <label for="cameraInput">📸 拍照或上傳截圖/照片</label>
-            <!-- 拿掉 capture 屬性，讓手機可以選擇相機或相簿截圖 -->
+            <label for="cameraInput">📸 拍照或上傳截圖 (自動 OCR 辨識)</label>
             <input type="file" id="cameraInput" accept="image/*" onchange="handleImageUpload(event)">
         </div>
+        
+        <div id="loadingStatus" class="loading-status" style="display: none;"></div>
 
-        <input type="text" id="name" placeholder="商品名稱 (例: 參天眼藥水)">
-        <input type="text" id="price" placeholder="價格 (例: 480円)">
+        <input type="text" id="name" placeholder="商品名稱 (可由 OCR 自動帶入)">
+        <input type="text" id="price" placeholder="價格 (可由 OCR 自動帶入)">
         <input type="hidden" id="image" value="">
         <textarea id="note" placeholder="備忘/買幾個/在哪看到..." rows="2"></textarea>
         <button onclick="addItem()">加入清單</button>
     </div>
 
-    <!-- 清單顯示區 -->
     <div id="item-list"></div>
 
     <script>
@@ -89,18 +90,58 @@
             localStorage.setItem('jp_shopping_list', JSON.stringify(items));
         }
 
-        function handleImageUpload(event) {
+        async function handleImageUpload(event) {
             const file = event.target.files[0];
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    document.getElementById('image').value = e.target.result;
-                    document.getElementById('name').value = "上傳截圖商品 (測試)";
-                    document.getElementById('price').value = "500円";
-                    alert('圖片/截圖已成功載入！');
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = async function(e) {
+                const base64Image = e.target.result;
+                document.getElementById('image').value = base64Image;
+
+                const statusEl = document.getElementById('loadingStatus');
+                statusEl.style.display = 'block';
+                statusEl.innerText = '🔍 正在進行 OCR 辨識文字中，請稍候...';
+
+                try {
+                    // 使用 Tesseract 辨識日文與英文/數字 (jpn + eng)
+                    const result = await Tesseract.recognize(
+                        base64Image,
+                        'jpn+eng',
+                        { 
+                            logger: m => {
+                                if (m.status === 'recognizing text') {
+                                    statusEl.innerText = `🔍 辨識中... ${Math.round(m.progress * 100)}%`;
+                                }
+                            }
+                        }
+                    );
+
+                    const text = result.data.text.trim();
+                    statusEl.innerText = '✅ OCR 辨識完成！';
+                    setTimeout(() => { statusEl.style.display = 'none'; }, 3000);
+
+                    // 自動將辨識到的第一行文字填入品名，並把整個文字放進備忘錄
+                    const lines = text.split('\n').filter(line => line.trim().length > 0);
+                    if (lines.length > 0) {
+                        document.getElementById('name').value = lines[0]; // 第一行通常是品名
+                        document.getElementById('note').value = "OCR 原始文字：\n" + text;
+                    }
+
+                    // 嘗試從文字中尋找包含金額的字串 (例如包含 円、¥、￥ 或數字)
+                    const priceMatch = text.match(/([0-9,]+)\s*(円|엔|¥|￥)/);
+                    if (priceMatch) {
+                        document.getElementById('price').value = priceMatch[0];
+                    } else {
+                        document.getElementById('price').value = "未抓到價格";
+                    }
+
+                } catch (error) {
+                    console.error(error);
+                    statusEl.innerText = '❌ OCR 辨識失敗，請手動填寫';
                 }
-                reader.readAsDataURL(file);
-            }
+            };
+            reader.readAsDataURL(file);
         }
 
         function addItem() {
