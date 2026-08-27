@@ -11,6 +11,7 @@
     <meta name="apple-mobile-web-app-title" content="日本購物清單">
 
     <style>
+        /* 四季動態主題變數定義 */
         :root {
             --bg-color: #fafafa;
             --card-bg: #ffffff;
@@ -19,6 +20,8 @@
             --border-color: #eeeeee;
             --accent-color: #2e7d32;
             --danger-color: #d32f2f;
+            --theme-primary: #e91e63; /* 預設秋/春過渡 */
+            --theme-light: #fce4ec;
         }
 
         body {
@@ -95,9 +98,9 @@
         }
 
         .file-label:hover { 
-            border-color: var(--accent-color); 
-            color: var(--accent-color);
-            background-color: #f7fbf7;
+            border-color: var(--theme-primary); 
+            color: var(--theme-primary);
+            background-color: var(--theme-light);
         }
         #file-input { display: none; }
 
@@ -157,6 +160,27 @@
         .item-price { color: #c2185b; font-weight: 600; font-size: 0.9em; }
         .item-note { color: var(--text-sub); font-size: 0.8em; margin-top: 2px; }
 
+        /* 實際購買價格輸入欄位 */
+        .purchase-input-group {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            margin-top: 4px;
+            font-size: 0.85em;
+            color: var(--text-sub);
+        }
+        .purchase-input {
+            width: 85px;
+            padding: 3px 6px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            font-size: 0.9em;
+            outline: none;
+        }
+        .purchase-input:focus {
+            border-color: var(--theme-primary);
+        }
+
         /* 已勾選項目的柔和灰底與降彩度 */
         li.checked-item {
             background-color: #f5f5f5;
@@ -180,8 +204,8 @@
 
         .action-btn {
             background-color: transparent;
-            color: var(--accent-color);
-            border: 1px solid var(--accent-color);
+            color: var(--theme-primary);
+            border: 1px solid var(--theme-primary);
             padding: 5px 10px;
             border-radius: 6px;
             cursor: pointer;
@@ -189,7 +213,7 @@
             font-weight: 500;
             transition: all 0.2s;
         }
-        .action-btn:hover { background-color: var(--accent-color); color: white; }
+        .action-btn:hover { background-color: var(--theme-primary); color: white; }
 
         .danger-btn {
             color: var(--danger-color);
@@ -317,12 +341,11 @@
             text-align: center;
         }
         .modal-list-item:hover {
-            background: var(--accent-color);
+            background: var(--theme-primary);
             color: white;
-            border-color: var(--accent-color);
+            border-color: var(--theme-primary);
         }
 
-        /* 選擇歷史商品彈窗內的清單樣式 */
         .modal-item-row {
             display: flex;
             align-items: center;
@@ -378,7 +401,7 @@
     </div>
 
     <div class="container" id="main-container">
-        <!-- 首頁預設畫面 (保持乾淨) -->
+        <!-- 首頁預設畫面：無辨識結果時維持乾淨空白 -->
         <div class="upload-section">
             <label for="file-input" class="file-label">
                 ＋ 拍攝或上傳商品照片
@@ -388,11 +411,9 @@
             <div id="error-msg">❌ 辨識失敗，請再試一次</div>
         </div>
 
-        <div class="card-section">
+        <div class="card-section" id="result-card-section" style="display: none;">
             <div class="card-header">辨識結果</div>
-            <ul id="shopping-list">
-                <li><em style="color: var(--text-sub); font-size: 0.9em;">尚未進行拍攝或上傳</em></li>
-            </ul>
+            <ul id="shopping-list"></ul>
         </div>
     </div>
 
@@ -449,8 +470,34 @@
         let activeCustomListForAdding = null;
 
         document.addEventListener('DOMContentLoaded', () => {
+            applySeasonalTheme();
             fileInput.addEventListener('change', handleImageUpload);
         });
+
+        // 依據當前月份自動套用四季風格
+        function applySeasonalTheme() {
+            const month = new Date().getMonth() + 1;
+            let primary, light;
+            if (month >= 3 && month <= 5) {
+                // 春天：櫻花粉紅風格
+                primary = '#e91e63';
+                light = '#fce4ec';
+            } else if (month >= 6 && month <= 8) {
+                // 夏天：水蜜桃風格
+                primary = '#ff7043';
+                light = '#fbe9e7';
+            } else if (month >= 9 && month <= 11) {
+                // 秋天：楓葉暖褐風格
+                primary = '#d84315';
+                light = '#fbe9e7';
+            } else {
+                // 冬天：溫泉舒適藍灰風格
+                primary = '#0288d1';
+                light = '#e1f5fe';
+            }
+            document.documentElement.style.setProperty('--theme-primary', primary);
+            document.documentElement.style.setProperty('--theme-light', light);
+        }
 
         function toggleDrawer(open) {
             if (open) {
@@ -492,11 +539,13 @@
 
                 const processedItems = await processItemsCrops(data.items, compressedBase64);
                 
-                // 儲存至價格庫紀錄中
-                saveToHistory(processedItems);
-
-                // 辨識完成後直接顯示於首頁當次結果供操作
-                renderHomeItems(processedItems);
+                if (processedItems.length > 0) {
+                    saveToHistory(processedItems);
+                    renderHomeItems(processedItems);
+                } else {
+                    // 若無辨識結果維持空白
+                    document.getElementById('result-card-section').style.display = 'none';
+                }
 
             } catch (err) {
                 console.error(err);
@@ -563,7 +612,7 @@
                 results.push({
                     id: 'item_' + Math.random().toString(36).substr(2, 9),
                     name: item.name || '未命名商品',
-                    price: item.price || '未標示',
+                    price: item.price || '', // 無價格時保持空白供手動輸入
                     note: item.note || '',
                     thumb: thumbUrl
                 });
@@ -587,23 +636,22 @@
                     <div id="loading">⚡ AI 辨識處理中...</div>
                     <div id="error-msg">❌ 辨識失敗，請再試一次</div>
                 </div>
-                <div class="card-section">
+                <div class="card-section" id="result-card-section" style="display: none;">
                     <div class="card-header">辨識結果</div>
-                    <ul id="shopping-list">
-                        <li><em style="color: var(--text-sub); font-size: 0.9em;">尚未進行拍攝或上傳</em></li>
-                    </ul>
+                    <ul id="shopping-list"></ul>
                 </div>
             `;
-            // 重新綁定新建立的 file-input 事件
             document.getElementById('file-input').addEventListener('change', handleImageUpload);
         }
 
         function renderHomeItems(items) {
+            const section = document.getElementById('result-card-section');
             const listUl = document.getElementById('shopping-list');
             listUl.innerHTML = '';
             if (items.length === 0) {
-                listUl.innerHTML = '<li><em style="color: var(--text-sub); font-size: 0.9em;">沒有辨識到商品</em></li>';
+                section.style.display = 'none';
             } else {
+                section.style.display = 'block';
                 items.forEach(item => listUl.appendChild(createItemNode(item, 'home')));
             }
         }
@@ -656,11 +704,36 @@
 
             const detailsDiv = document.createElement('div');
             detailsDiv.className = 'item-details';
+            
+            // 價格格式處理：支援含稅(未稅)與空白手動輸入
+            let priceHtml = '';
+            if (mode === 'custom') {
+                priceHtml = `<span class="item-price">標示：${item.price || '未標示'}</span>`;
+            } else {
+                priceHtml = `<span class="item-price">${item.price || ''}</span>`;
+            }
+
             detailsDiv.innerHTML = `
                 <p class="item-name">${item.name}</p>
-                <span class="item-price">${item.price}</span>
+                <div>${priceHtml}</div>
                 ${item.note ? `<p class="item-note">${item.note}</p>` : ''}
             `;
+
+            // 自訂清單額外加入「實際購買價格」輸入欄位
+            if (mode === 'custom') {
+                const purchaseDiv = document.createElement('div');
+                purchaseDiv.className = 'purchase-input-group';
+                purchaseDiv.innerHTML = `<span>實買:</span>`;
+                const purchaseInput = document.createElement('input');
+                purchaseInput.type = 'text';
+                purchaseInput.className = 'purchase-input';
+                purchaseInput.placeholder = '輸入價格';
+                purchaseInput.value = item.purchasePrice || '';
+                purchaseInput.onchange = () => updatePurchasePrice(customListName, item.id, purchaseInput.value);
+                purchaseDiv.appendChild(purchaseInput);
+                detailsDiv.appendChild(purchaseDiv);
+            }
+
             li.appendChild(detailsDiv);
 
             const actionsDiv = document.createElement('div');
@@ -681,7 +754,7 @@
                         li.remove();
                         const listUl = document.getElementById('shopping-list');
                         if (listUl.children.length === 0) {
-                            listUl.innerHTML = '<li><em style="color: var(--text-sub); font-size: 0.9em;">尚未進行拍攝或上傳</em></li>';
+                            document.getElementById('result-card-section').style.display = 'none';
                         }
                     } else if (mode === 'history') {
                         deleteHistoryItem(batchIdx, item.id);
@@ -774,7 +847,8 @@
                     closeModal();
                     return;
                 }
-                lists[targetList].push({ item: selectedItemForAdd, checked: false });
+                // 儲存時保留 purchasePrice 欄位
+                lists[targetList].push({ item: { ...selectedItemForAdd, purchasePrice: '' }, checked: false });
                 localStorage.setItem('custom_shopping_lists', JSON.stringify(lists));
                 alert(`已加入「${targetList}」`);
             }
@@ -806,7 +880,7 @@
                     row.innerHTML = `
                         <div class="modal-item-info">
                             <img src="${item.thumb || ''}" onerror="this.style.display='none'">
-                            <div class="modal-item-text">${item.name} <br><span style="color:#c2185b; font-weight:normal;">${item.price}</span></div>
+                            <div class="modal-item-text">${item.name} <br><span style="color:#c2185b; font-weight:normal;">${item.price || '未標示'}</span></div>
                         </div>
                     `;
                     const addBtn = document.createElement('button');
@@ -838,7 +912,7 @@
                     alert('此商品已經在清單中了！');
                     return;
                 }
-                lists[listName].push({ item: item, checked: false });
+                lists[listName].push({ item: { ...item, purchasePrice: '' }, checked: false });
                 localStorage.setItem('custom_shopping_lists', JSON.stringify(lists));
                 showCustomListView(listName);
                 closePickModal();
@@ -883,6 +957,17 @@
                     target.checked = isChecked;
                     localStorage.setItem('custom_shopping_lists', JSON.stringify(lists));
                     showCustomListView(listName);
+                }
+            }
+        }
+
+        function updatePurchasePrice(listName, itemId, priceVal) {
+            let lists = JSON.parse(localStorage.getItem('custom_shopping_lists') || '{}');
+            if (lists[listName]) {
+                const target = lists[listName].find(e => e.item.id === itemId);
+                if (target) {
+                    target.item.purchasePrice = priceVal;
+                    localStorage.setItem('custom_shopping_lists', JSON.stringify(lists));
                 }
             }
         }
