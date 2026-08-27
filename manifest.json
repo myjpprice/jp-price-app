@@ -1,0 +1,9 @@
+{
+  "name": "日本購物查價",
+  "short_name": "查價",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#f5f5f5",
+  "theme_color": "#111111",
+  "icons": []
+}
