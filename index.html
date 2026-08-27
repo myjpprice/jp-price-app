@@ -54,11 +54,7 @@
             padding: 24px 0; box-sizing: border-box;
         }
 
-        /* 極簡日系質感上傳按鈕（拿掉多餘外框，直接融入背景） */
-        .upload-section {
-            text-align: center;
-            width: 100%;
-        }
+        .upload-section { text-align: center; width: 100%; }
 
         .file-label {
             display: flex; align-items: center; justify-content: center; gap: 12px;
@@ -81,7 +77,6 @@
         #loading { color: var(--theme-primary); }
         #error-msg { color: var(--danger-color); }
 
-        /* 內容清單卡片（純淨半透明毛玻璃，透出背景特效） */
         .card-section {
             width: 100%; 
             background: rgba(255, 255, 255, 0.65);
@@ -233,13 +228,13 @@
     <div class="modal" id="add-to-list-modal">
         <h3>選擇要加入的清單</h3>
         <div class="modal-list-container" id="modal-list-container"></div>
-        <button class="modal-close-btn" onclick="closeModal()">取消</button>
+        <button class="modal-close-btn" onclick="closeAllOverlays()">取消</button>
     </div>
 
     <div class="modal" id="pick-from-history-modal">
         <h3 id="pick-modal-title">從價格庫挑選商品加入</h3>
         <div class="modal-list-container" id="pick-modal-list-container"></div>
-        <button class="modal-close-btn" onclick="closePickModal()">關閉</button>
+        <button class="modal-close-btn" onclick="closeAllOverlays()">關閉</button>
     </div>
 
     <canvas id="crop-canvas"></canvas>
@@ -250,21 +245,17 @@
         const mainContainer = document.getElementById('main-container');
         const pageTitle = document.getElementById('page-title');
         const cropCanvas = document.getElementById('crop-canvas');
-        const ctx = cropCanvas.getContext('2d');
         const drawer = document.getElementById('history-drawer');
         const overlay = document.getElementById('overlay');
         const modal = document.getElementById('add-to-list-modal');
         const pickModal = document.getElementById('pick-from-history-modal');
-        
-        let selectedItemForAdd = null;
-        let activeCustomListForAdding = null;
 
         document.addEventListener('DOMContentLoaded', () => {
-            initPeachBackground();
+            initSeasonalBackground();
             fileInput.addEventListener('change', handleImageUpload);
         });
 
-        function initPeachBackground() {
+        function initSeasonalBackground() {
             const canvas = document.getElementById('seasonal-canvas');
             const sCtx = canvas.getContext('2d');
             
@@ -275,17 +266,54 @@
             resize();
             window.addEventListener('resize', resize);
 
-            let particles = Array.from({ length: 24 }, () => ({
+            let particles = Array.from({ length: 20 }, () => ({
                 x: Math.random() * canvas.width,
                 y: Math.random() * canvas.height,
-                radius: Math.random() * 10 + 4,
-                speedY: Math.random() * 0.4 + 0.1,
+                radius: Math.random() * 8 + 3,
+                speedY: Math.random() * 0.3 + 0.1,
                 speedX: Math.random() * 0.3 - 0.15,
-                opacity: Math.random() * 0.45 + 0.2
+                opacity: Math.random() * 0.4 + 0.15
             }));
+
+            let time = 0;
 
             function animate() {
                 sCtx.clearRect(0, 0, canvas.width, canvas.height);
+                time += 0.02;
+
+                sCtx.save();
+                
+                // 1. 竹林剪影
+                sCtx.fillStyle = 'rgba(120, 140, 125, 0.12)';
+                const bambooCount = Math.floor(canvas.width / 50);
+                for (let i = 0; i < bambooCount; i++) {
+                    let bx = i * 65 + (i % 3) * 15;
+                    let bWidth = 6 + (i % 3) * 2;
+                    sCtx.fillRect(bx, canvas.height * 0.4, bWidth, canvas.height * 0.6);
+                    sCtx.fillStyle = 'rgba(90, 110, 95, 0.18)';
+                    for (let j = 0; j < canvas.height; j += 80) {
+                        sCtx.fillRect(bx - 1, canvas.height * 0.4 + j, bWidth + 2, 3);
+                    }
+                    sCtx.fillStyle = 'rgba(120, 140, 125, 0.12)';
+                }
+
+                // 2. 鳥居剪影
+                let toriiX = canvas.width - 120;
+                let toriiY = canvas.height - 180;
+                sCtx.fillStyle = 'rgba(140, 95, 100, 0.14)';
+                sCtx.fillRect(toriiX, toriiY + 30, 8, 150);
+                sCtx.fillRect(toriiX + 45, toriiY + 30, 8, 150);
+                sCtx.beginPath();
+                sCtx.moveTo(toriiX - 15, toriiY + 25);
+                sCtx.lineTo(toriiX + 68, toriiY + 25);
+                sCtx.lineTo(toriiX + 58, toriiY + 35);
+                sCtx.lineTo(toriiX - 5, toriiY + 35);
+                sCtx.closePath();
+                sCtx.fill();
+                sCtx.fillRect(toriiX - 8, toriiY + 45, 69, 6);
+                sCtx.fillRect(toriiX + 4, toriiY + 75, 45, 5);
+
+                sCtx.restore();
 
                 particles.forEach(p => {
                     sCtx.save();
@@ -297,9 +325,10 @@
                     sCtx.restore();
 
                     p.y += p.speedY;
-                    p.x += p.speedX + Math.sin(p.y / 45) * 0.15;
+                    p.x += p.speedX + Math.sin(time + p.y / 50) * 0.2;
                     if (p.y > canvas.height + 10) { p.y = -10; p.x = Math.random() * canvas.width; }
                 });
+
                 requestAnimationFrame(animate);
             }
             animate();
@@ -312,7 +341,7 @@
         }
 
         function closeAllOverlays() {
-            toggleDrawer(false);
+            drawer.classList.remove('open');
             modal.classList.remove('show');
             pickModal.classList.remove('show');
             overlay.classList.remove('show');
@@ -402,7 +431,7 @@
         }
 
         function showHomeView() {
-            toggleDrawer(false);
+            closeAllOverlays();
             pageTitle.innerText = "🍑 日本購物清單";
             mainContainer.innerHTML = `
                 <div class="upload-section">
@@ -432,7 +461,7 @@
         }
 
         function showHistoryView() {
-            toggleDrawer(false);
+            closeAllOverlays();
             pageTitle.innerText = "價格庫";
             const history = JSON.parse(localStorage.getItem('all_shopping_history') || '[]');
             mainContainer.innerHTML = `<div class="card-section"><div class="card-header">所有拍照紀錄</div><div id="history-content" style="margin-top:10px;"></div></div>`;
@@ -534,7 +563,6 @@
             const lists = JSON.parse(localStorage.getItem('custom_shopping_lists') || '{}');
             const keys = Object.keys(lists);
             if (!keys.length) { alert('請先建立至少一個購物清單'); return; }
-            selectedItemForAdd = item;
             const container = document.getElementById('modal-list-container');
             container.innerHTML = '';
             keys.forEach(k => {
@@ -555,7 +583,7 @@
         }
 
         function showCustomListView(name) {
-            toggleDrawer(false); pageTitle.innerText = name;
+            closeAllOverlays(); pageTitle.innerText = name;
             mainContainer.innerHTML = `
                 <div class="card-section">
                     <div class="card-header" style="padding-bottom:8px;">
@@ -576,7 +604,6 @@
         }
 
         function openPickModal(listName) {
-            activeCustomListForAdding = listName;
             const container = document.getElementById('pick-modal-list-container');
             container.innerHTML = '';
             const history = JSON.parse(localStorage.getItem('all_shopping_history') || '[]');
