@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>日本購物小清單 (極速 AI 裁切版)</title>
+    <title>日本購物小清單</title>
     <style>
         :root {
             --primary-color: #4CAF50;
@@ -24,7 +24,6 @@
 
         h1 { color: #333; margin-bottom: 10px; font-size: 1.4em; text-align: center; }
 
-        /* 上傳區域 */
         .upload-section {
             background: white;
             padding: 20px;
@@ -50,12 +49,10 @@
         .file-label:hover { background-color: #e8f5e9; }
         #file-input { display: none; }
 
-        /* 載入與錯誤訊息 */
         #loading, #error-msg { display: none; margin-top: 10px; font-weight: bold; }
         #loading { color: #2196F3; }
         #error-msg { color: var(--danger-color); }
 
-        /* 購物清單區域 */
         #list-section {
             width: 90%;
             max-width: 600px;
@@ -77,7 +74,6 @@
 
         li:last-child { border-bottom: none; }
 
-        /* 裁切縮圖樣式 */
         .item-thumb {
             width: 70px;
             height: 70px;
@@ -110,20 +106,18 @@
             📸 選擇相片或拍照上傳 (極速辨識)
         </label>
         <input type="file" id="file-input" accept="image/*">
-        <div id="loading">⚡ 極速壓縮與 AI 辨識中...</div>
+        <div id="loading">⚡ AI 辨識中...</div>
         <div id="error-msg">❌ 發生錯誤：未能成功辨識圖片</div>
     </div>
 
     <div id="list-section">
         <ul id="shopping-list">
-            <!-- 辨識結果將動態插入這裡 -->
         </ul>
     </div>
 
     <canvas id="crop-canvas"></canvas>
 
     <script>
-        // 你的 Cloudflare Worker 網址
         const WORKER_URL = "https://jpprice-ocr.neptune8264.workers.dev";
 
         const fileInput = document.getElementById('file-input');
@@ -145,10 +139,8 @@
             const currentFileInput = fileInput;
             
             try {
-                // 1. 在前端進行圖片壓縮與縮小，大幅提升上傳與 AI 處理速度
                 const compressedBase64 = await compressImage(file, 800, 0.8);
                 
-                // 2. 將壓縮後的 Base64 送往 Worker 進行辨識
                 const response = await fetch(WORKER_URL, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -161,7 +153,6 @@
                     throw new Error(data.error || 'Worker response not ok');
                 }
 
-                // 3. 渲染清單與裁切小圖（以壓縮後的圖片作為基準來裁切）
                 await renderListWithCrops(data.items, compressedBase64);
 
             } catch (err) {
@@ -174,7 +165,6 @@
             }
         }
 
-        // 圖片壓縮輔助函數：限制最大寬度，並轉為 JPEG
         function compressImage(file, maxWidth = 800, quality = 0.8) {
             return new Promise((resolve, reject) => {
                 const reader = new FileReader();
@@ -186,7 +176,6 @@
                         let width = img.naturalWidth;
                         let height = img.naturalHeight;
 
-                        // 超過最大寬度時等比例縮小
                         if (width > maxWidth) {
                             height = Math.round((height * maxWidth) / width);
                             width = maxWidth;
@@ -198,7 +187,6 @@
                         const cCtx = canvas.getContext('2d');
                         cCtx.drawImage(img, 0, 0, width, height);
 
-                        // 輸出壓縮後的 Base64
                         resolve(canvas.toDataURL('image/jpeg', quality));
                     };
                     img.onerror = (error) => reject(error);
@@ -207,7 +195,6 @@
             });
         }
 
-        // 核心函數：渲染清單並在前端執行圖片裁切
         async function renderListWithCrops(items, base64Image) {
             if (!items || items.length === 0) {
                 shoppingList.innerHTML = '<li><em>AI 沒有識別到商品</em></li>';
@@ -227,13 +214,14 @@
                     try {
                         const [ymin, xmin, ymax, xmax] = item.box_2d;
                         
+                        // 正確計算寬高比例像素
                         const scaleX = originalImg.naturalWidth / 100;
                         const scaleY = originalImg.naturalHeight / 100;
 
                         const cropX = xmin * scaleX;
                         const cropY = ymin * scaleY;
                         const cropWidth = (xmax - xmin) * scaleX;
-                        const cropHeight = (ymax - ymin) * scaleX; // 修正比例對應
+                        const cropHeight = (ymax - ymin) * scaleY; // 這裡已修正為 scaleY
 
                         if (cropWidth > 0 && cropHeight > 0) {
                             cropCanvas.width = cropWidth;
