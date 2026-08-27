@@ -138,6 +138,7 @@
             transition: background-color 0.2s;
         }
 
+        li:first-child { border-top: none; }
         li:last-child { border-bottom: none; }
 
         .item-thumb {
@@ -268,34 +269,102 @@
         .overlay {
             position: fixed;
             top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.2);
+            background: rgba(0,0,0,0.3);
             display: none;
             z-index: 999;
         }
         .overlay.show { display: block; }
 
-        /* 彈窗 */
+        /* 通用彈窗樣式 */
         .modal {
             position: fixed;
             top: 50%; left: 50%;
             transform: translate(-50%, -50%);
             background: var(--card-bg);
-            padding: 20px;
-            border-radius: 12px;
+            padding: 24px;
+            border-radius: 16px;
             border: 1px solid var(--border-color);
-            box-shadow: 0 10px 25px rgba(0,0,0,0.05);
+            box-shadow: 0 12px 30px rgba(0,0,0,0.12);
             z-index: 1100;
-            width: 80%;
-            max-width: 280px;
+            width: 88%;
+            max-width: 360px;
             display: none;
+            box-sizing: border-box;
+            max-height: 80vh;
+            display: flex;
+            flex-direction: column;
         }
-        .modal.show { display: block; }
-        .modal h3 { margin-top: 0; font-size: 0.95em; font-weight: 600; color: var(--text-main); }
-        .modal select { width: 100%; padding: 8px; margin: 10px 0 16px 0; border-radius: 6px; border: 1px solid var(--border-color); font-size: 0.9em; background: #fff; }
-        .modal-buttons { display: flex; justify-content: flex-end; gap: 8px; }
-        .modal-buttons button { padding: 6px 12px; border-radius: 6px; font-size: 0.85em; font-weight: 500; cursor: pointer; border: none; }
-        .btn-cancel { background: #f0f0f0; color: var(--text-main); }
-        .btn-confirm { background: var(--accent-color); color: white; }
+        .modal.show { display: flex; }
+        .modal h3 { margin: 0 0 16px 0; font-size: 1.05em; font-weight: 600; color: var(--text-main); text-align: center; flex-shrink: 0; }
+        
+        .modal-list-container {
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-bottom: 16px;
+            flex-grow: 1;
+        }
+
+        .modal-list-item {
+            padding: 12px 14px;
+            background: #f8f9fa;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            font-size: 0.95em;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.15s;
+            text-align: center;
+        }
+        .modal-list-item:hover {
+            background: var(--accent-color);
+            color: white;
+            border-color: var(--accent-color);
+        }
+
+        /* 選擇歷史商品彈窗內的清單樣式 */
+        .modal-item-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 8px 10px;
+            background: #f9f9f9;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            gap: 8px;
+        }
+        .modal-item-info {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-grow: 1;
+            min-width: 0;
+            text-align: left;
+        }
+        .modal-item-info img {
+            width: 40px; height: 40px; object-fit: cover; border-radius: 4px; border: 1px solid var(--border-color); flex-shrink: 0;
+        }
+        .modal-item-text {
+            font-size: 0.85em;
+            font-weight: 600;
+            color: var(--text-main);
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        }
+
+        .modal-close-btn {
+            width: 100%;
+            padding: 10px;
+            background: #f0f0f0;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.9em;
+            font-weight: 500;
+            color: var(--text-main);
+            cursor: pointer;
+            flex-shrink: 0;
+        }
+        .modal-close-btn:hover { background: #e0e0e0; }
 
         #crop-canvas { display: none; }
     </style>
@@ -305,7 +374,7 @@
     <!-- 頂部導覽列 -->
     <div class="navbar">
         <button class="menu-btn" onclick="toggleDrawer(true)">☰</button>
-        <h1 class="nav-title" id="page-title">日本購物清單</h1>
+        <h1 class="nav-title" id="page-title">日本購物小清單</h1>
         <div style="width: 20px;"></div>
     </div>
 
@@ -321,7 +390,6 @@
         </div>
 
         <div class="card-section">
-            <div class="card-header">最近辨識結果</div>
             <ul id="shopping-list">
                 <li><em style="color: var(--text-sub); font-size: 0.9em;">尚無紀錄，請點擊上方上傳照片</em></li>
             </ul>
@@ -336,8 +404,8 @@
             <button class="close-btn" onclick="toggleDrawer(false)">✕</button>
         </div>
         <div class="drawer-content">
-            <a href="#" class="menu-item-link" onclick="showHomeView()">首頁 (最近辨識)</a>
-            <a href="#" class="menu-item-link" onclick="showHistoryView()">價格庫</a>
+            <a href="#" class="menu-item-link" onclick="showHomeView()">最新辨識</a>
+            <a href="#" class="menu-item-link" onclick="showHistoryView()">所有歷史紀錄</a>
             
             <div class="menu-section-title">我的清單</div>
             <div id="custom-lists-menu"></div>
@@ -345,14 +413,18 @@
         </div>
     </div>
 
-    <!-- 選擇要加入清單的彈窗 -->
+    <!-- 彈窗 1：選擇要加入的目標清單 -->
     <div class="modal" id="add-to-list-modal">
-        <h3>加入至清單</h3>
-        <select id="modal-list-select"></select>
-        <div class="modal-buttons">
-            <button class="btn-cancel" onclick="closeModal()">取消</button>
-            <button class="btn-confirm" onclick="confirmAddItemToList()">確定</button>
-        </div>
+        <h3>選擇要加入的清單</h3>
+        <div class="modal-list-container" id="modal-list-container"></div>
+        <button class="modal-close-btn" onclick="closeModal()">取消</button>
+    </div>
+
+    <!-- 彈窗 2：從歷史紀錄挑選商品加入當前清單 -->
+    <div class="modal" id="pick-from-history-modal">
+        <h3 id="pick-modal-title">從記錄挑選商品加入</h3>
+        <div class="modal-list-container" id="pick-modal-list-container"></div>
+        <button class="modal-close-btn" onclick="closePickModal()">關閉</button>
     </div>
 
     <canvas id="crop-canvas"></canvas>
@@ -371,9 +443,13 @@
         const drawer = document.getElementById('history-drawer');
         const overlay = document.getElementById('overlay');
         const modal = document.getElementById('add-to-list-modal');
-        const modalSelect = document.getElementById('modal-list-select');
+        const modalListContainer = document.getElementById('modal-list-container');
+        const pickModal = document.getElementById('pick-from-history-modal');
+        const pickModalListContainer = document.getElementById('pick-modal-list-container');
+        const pickModalTitle = document.getElementById('pick-modal-title');
 
         let selectedItemForAdd = null;
+        let activeCustomListForAdding = null;
 
         document.addEventListener('DOMContentLoaded', () => {
             loadLatestAndRefreshMenu();
@@ -395,6 +471,7 @@
         function closeAllOverlays() {
             toggleDrawer(false);
             closeModal();
+            closePickModal();
         }
 
         async function handleImageUpload(event) {
@@ -506,7 +583,7 @@
 
         function showHomeView() {
             toggleDrawer(false);
-            pageTitle.innerText = "日本購物清單";
+            pageTitle.innerText = "日本購物小清單";
             mainContainer.innerHTML = `
                 <div class="upload-section">
                     <label for="file-input" class="file-label">＋ 拍攝或上傳商品照片</label>
@@ -515,7 +592,6 @@
                     <div id="error-msg">❌ 辨識失敗，請再試一次</div>
                 </div>
                 <div class="card-section">
-                    <div class="card-header">最近辨識結果</div>
                     <ul id="shopping-list"></ul>
                 </div>
             `;
@@ -530,7 +606,7 @@
 
         function showHistoryView() {
             toggleDrawer(false);
-            pageTitle.innerText = "價格庫";
+            pageTitle.innerText = "歷史辨識紀錄";
             mainContainer.innerHTML = `
                 <div class="card-section">
                     <div class="card-header">所有拍照紀錄</div>
@@ -652,17 +728,20 @@
             let lists = JSON.parse(localStorage.getItem('custom_shopping_lists') || '{}');
             const keys = Object.keys(lists);
             if (keys.length === 0) {
-                alert('請先在選單建立至少一個購物清單');
+                alert('請先在側邊欄選單建立至少一個購物清單');
                 return;
             }
             selectedItemForAdd = item;
-            modalSelect.innerHTML = '';
+            modalListContainer.innerHTML = '';
+            
             keys.forEach(k => {
-                const opt = document.createElement('option');
-                opt.value = k;
-                opt.innerText = k;
-                modalSelect.appendChild(opt);
+                const div = document.createElement('div');
+                div.className = 'modal-list-item';
+                div.innerText = k;
+                div.onclick = () => confirmAddItemToList(k);
+                modalListContainer.appendChild(div);
             });
+
             modal.classList.add('show');
             overlay.classList.add('show');
         }
@@ -673,12 +752,17 @@
             selectedItemForAdd = null;
         }
 
-        function confirmAddItemToList() {
+        function confirmAddItemToList(targetList) {
             if (!selectedItemForAdd) return;
-            const targetList = modalSelect.value;
             let lists = JSON.parse(localStorage.getItem('custom_shopping_lists') || '{}');
             
             if (lists[targetList]) {
+                const exists = lists[targetList].some(e => e.item.id === selectedItemForAdd.id);
+                if (exists) {
+                    alert('此商品已經在清單中了！');
+                    closeModal();
+                    return;
+                }
                 lists[targetList].push({ item: selectedItemForAdd, checked: false });
                 localStorage.setItem('custom_shopping_lists', JSON.stringify(lists));
                 alert(`已加入「${targetList}」`);
@@ -686,14 +770,81 @@
             closeModal();
         }
 
+        function openPickFromHistoryModal(listName) {
+            activeCustomListForAdding = listName;
+            pickModalTitle.innerText = `新增商品至「${listName}」`;
+            pickModalListContainer.innerHTML = '';
+
+            let history = JSON.parse(localStorage.getItem('all_shopping_history') || '[]');
+            let allItemsMap = new Map();
+            history.forEach(batch => {
+                batch.items.forEach(item => {
+                    if (!allItemsMap.has(item.id)) {
+                        allItemsMap.set(item.id, item);
+                    }
+                });
+            });
+
+            const uniqueItems = Array.from(allItemsMap.values());
+            if (uniqueItems.length === 0) {
+                pickModalListContainer.innerHTML = '<p style="text-align:center; color:var(--text-sub); font-size:0.9em; padding:20px;">尚無任何歷史商品紀錄，請先拍攝商品照片</p>';
+            } else {
+                uniqueItems.forEach(item => {
+                    const row = document.createElement('div');
+                    row.className = 'modal-item-row';
+                    row.innerHTML = `
+                        <div class="modal-item-info">
+                            <img src="${item.thumb || ''}" onerror="this.style.display='none'">
+                            <div class="modal-item-text">${item.name} <br><span style="color:#c2185b; font-weight:normal;">${item.price}</span></div>
+                        </div>
+                    `;
+                    const addBtn = document.createElement('button');
+                    addBtn.className = 'action-btn';
+                    addBtn.innerText = '＋ 加入';
+                    addBtn.onclick = () => {
+                        addItemDirectlyToCustomList(listName, item);
+                    };
+                    row.appendChild(addBtn);
+                    pickModalListContainer.appendChild(row);
+                });
+            }
+
+            pickModal.classList.add('show');
+            overlay.classList.add('show');
+        }
+
+        function closePickModal() {
+            pickModal.classList.remove('show');
+            overlay.classList.remove('show');
+            activeCustomListForAdding = null;
+        }
+
+        function addItemDirectlyToCustomList(listName, item) {
+            let lists = JSON.parse(localStorage.getItem('custom_shopping_lists') || '{}');
+            if (lists[listName]) {
+                const exists = lists[listName].some(e => e.item.id === item.id);
+                if (exists) {
+                    alert('此商品已經在清單中了！');
+                    return;
+                }
+                lists[listName].push({ item: item, checked: false });
+                localStorage.setItem('custom_shopping_lists', JSON.stringify(lists));
+                showCustomListView(listName);
+                closePickModal();
+            }
+        }
+
         function showCustomListView(listName) {
             toggleDrawer(false);
             pageTitle.innerText = listName;
             mainContainer.innerHTML = `
                 <div class="card-section">
-                    <div class="card-header">
+                    <div class="card-header" style="padding-bottom: 8px;">
                         <span>清單項目</span>
-                        <button class="action-btn danger-btn" onclick="deleteCustomList('${listName}')">刪除整本清單</button>
+                        <div style="display:flex; gap:6px;">
+                            <button class="action-btn" onclick="openPickFromHistoryModal('${listName}')">＋ 從記錄加入</button>
+                            <button class="action-btn danger-btn" onclick="deleteCustomList('${listName}')">刪除清單</button>
+                        </div>
                     </div>
                     <ul id="custom-list-items" style="margin-top: 10px;"></ul>
                 </div>
@@ -704,7 +855,7 @@
             const ul = document.getElementById('custom-list-items');
 
             if (items.length === 0) {
-                ul.innerHTML = '<li><em style="color: var(--text-sub); font-size: 0.9em;">此清單目前沒有物品</em></li>';
+                ul.innerHTML = '<li><em style="color: var(--text-sub); font-size: 0.9em;">此清單目前沒有物品，可點擊上方「＋ 從記錄加入」</em></li>';
                 return;
             }
 
