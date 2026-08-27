@@ -101,48 +101,53 @@
 
                 const statusEl = document.getElementById('loadingStatus');
                 statusEl.style.display = 'block';
-                statusEl.innerText = '🔍 正在進行 OCR 辨識文字中，請稍候...';
+                statusEl.innerText = '🤖 正在透過 Gemini AI 解析多個商品與價格，請稍候...';
 
                 try {
-                    // 使用 Tesseract 辨識日文與英文/數字 (jpn + eng)
-                    const result = await Tesseract.recognize(
-                        base64Image,
-                        'jpn+eng',
-                        { 
-                            logger: m => {
-                                if (m.status === 'recognizing text') {
-                                    statusEl.innerText = `🔍 辨識中... ${Math.round(m.progress * 100)}%`;
-                                }
-                            }
-                        }
-                    );
+                    // 呼叫你的 Cloudflare Worker 後端
+                    const workerUrl = 'https://jpprice-ocr.neptune8264.workers.dev'; // 確保這裡對應你的 Worker 網址
+                    
+                    const response = await fetch(workerUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ image: base64Image })
+                    });
 
-                    const text = result.data.text.trim();
-                    statusEl.innerText = '✅ OCR 辨識完成！';
-                    setTimeout(() => { statusEl.style.display = 'none'; }, 3000);
-
-                    // 自動將辨識到的第一行文字填入品名，並把整個文字放進備忘錄
-                    const lines = text.split('\n').filter(line => line.trim().length > 0);
-                    if (lines.length > 0) {
-                        document.getElementById('name').value = lines[0]; // 第一行通常是品名
-                        document.getElementById('note').value = "OCR 原始文字：\n" + text;
+                    const data = await response.json();
+                    
+                    if (data.error) {
+                        throw new Error(data.error);
                     }
 
-                    // 嘗試從文字中尋找包含金額的字串 (例如包含 円、¥、￥ 或數字)
-                    const priceMatch = text.match(/([0-9,]+)\s*(円|엔|¥|￥)/);
-                    if (priceMatch) {
-                        document.getElementById('price').value = priceMatch[0];
+                    if (data.items && data.items.length > 0) {
+                        statusEl.innerText = `✅ 成功辨識出 ${data.items.length} 個商品！`;
+                        setTimeout(() => { statusEl.style.display = 'none'; }, 3000);
+
+                        // 自動將 AI 拆解出來的多個商品「全部」加入清單中！
+                        data.items.forEach(item => {
+                            items.unshift({
+                                name: item.name || "未命名商品",
+                                price: item.price || "未標示",
+                                image: base64Image, // 讓每個品項都帶上這張照片
+                                note: item.note || "AI 自動辨識",
+                                purchased: false
+                            });
+                        });
+
+                        // 重新渲染清單並存入 localStorage
+                        render();
                     } else {
-                        document.getElementById('price').value = "未抓到價格";
+                        statusEl.innerText = '⚠️ 沒有在圖片中找到商品，請手動填寫';
                     }
 
                 } catch (error) {
                     console.error(error);
-                    statusEl.innerText = '❌ OCR 辨識失敗，請手動填寫';
+                    statusEl.innerText = '❌ AI 辨識失敗，請檢查網路或稍後再試';
                 }
             };
             reader.readAsDataURL(file);
         }
+
 
         function addItem() {
             const name = document.getElementById('name').value;
