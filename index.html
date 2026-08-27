@@ -106,7 +106,6 @@
     <h1>🛒 日本戰利品清單 (AI 裁切版)</h1>
 
     <div class="upload-section">
-        <!-- 拿掉 capture 屬性，讓手機可以自由選擇拍照、相簿或檔案 -->
         <label for="file-input" class="file-label">
             📸 選擇相片或拍照上傳
         </label>
@@ -124,8 +123,8 @@
     <canvas id="crop-canvas"></canvas>
 
     <script>
-        // ⚠️ 請將此處替換為你實際部署好的 Cloudflare Worker URL
-        const WORKER_URL = "你的 Cloudflare Worker URL";
+        // 已直接寫入你的 Cloudflare Worker 網址
+        const WORKER_URL = "https://jpprice-ocr.neptune8264.workers.dev";
 
         const fileInput = document.getElementById('file-input');
         const shoppingList = document.getElementById('shopping-list');
