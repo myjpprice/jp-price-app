@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>日本購物小清單</title>
+    <title>日本購物小清單 (AI 智慧裁切版)</title>
     <style>
         :root {
             --primary-color: #4CAF50;
@@ -106,10 +106,11 @@
     <h1>🛒 日本戰利品清單 (AI 裁切版)</h1>
 
     <div class="upload-section">
+        <!-- 拿掉 capture 屬性，讓手機可以自由選擇拍照、相簿或檔案 -->
         <label for="file-input" class="file-label">
-            📸 拍照或上傳截圖 (自動 OCR 辨識)
+            📸 選擇相片或拍照上傳
         </label>
-        <input type="file" id="file-input" accept="image/*" capture="environment">
+        <input type="file" id="file-input" accept="image/*">
         <div id="loading">⏳ AI 正在努力辨識與裁切圖片...</div>
         <div id="error-msg">❌ 發生錯誤：未能成功辨識圖片</div>
     </div>
@@ -133,24 +134,20 @@
         const cropCanvas = document.getElementById('crop-canvas');
         const ctx = cropCanvas.getContext('2d');
 
-        // 綁定檔案上傳事件（確保選取圖片後能順利觸發）
         fileInput.addEventListener('change', handleImageUpload);
 
         async function handleImageUpload(event) {
             const file = event.target.files[0];
             if (!file) return;
 
-            // 重置UI狀態
             shoppingList.innerHTML = '';
             errorMsg.style.display = 'none';
             loadingText.style.display = 'block';
             const currentFileInput = fileInput;
             
             try {
-                // 1. 將圖片轉為 Base64 字串
                 const base64Image = await fileToBase64(file);
                 
-                // 2. 將 Base64 送往後端 Worker 進行 AI 辨識
                 const response = await fetch(WORKER_URL, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -163,7 +160,6 @@
                     throw new Error(data.error || 'Worker response not ok');
                 }
 
-                // 3. 成功取得資料，開始渲染清單並執行客戶端裁切
                 await renderListWithCrops(data.items, base64Image);
 
             } catch (err) {
@@ -172,11 +168,10 @@
                 errorMsg.style.display = 'block';
             } finally {
                 loadingText.style.display = 'none';
-                currentFileInput.value = ''; // 清空讓下次可以重複選擇同一張圖
+                currentFileInput.value = '';
             }
         }
 
-        // 將 File 物件轉為 Base64
         function fileToBase64(file) {
             return new Promise((resolve, reject) => {
                 const reader = new FileReader();
@@ -186,7 +181,6 @@
             });
         }
 
-        // 核心函數：渲染清單並在前端執行圖片裁切
         async function renderListWithCrops(items, originalBase64) {
             if (!items || items.length === 0) {
                 shoppingList.innerHTML = '<li><em>AI 沒有識別到商品</em></li>';
