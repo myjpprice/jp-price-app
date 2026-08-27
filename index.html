@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>日本購物小清單 (AI 智慧裁切版)</title>
+    <title>日本購物小清單</title>
     <style>
         :root {
             --primary-color: #4CAF50;
@@ -72,24 +72,23 @@
             border-bottom: 1px solid var(--border-color);
             padding: 10px 0;
             display: flex;
-            align-items: flex-start; /* 對齊頂部 */
+            align-items: flex-start;
         }
 
         li:last-child { border-bottom: none; }
 
         /* 裁切縮圖樣式 */
         .item-thumb {
-            width: 60px; /* 固定寬度 */
-            height: 60px; /* 固定高度 */
-            object-fit: cover; /* 保持比例填滿 */
+            width: 60px;
+            height: 60px;
+            object-fit: cover;
             border-radius: 5px;
             margin-right: 15px;
             border: 1px solid #eee;
-            flex-shrink: 0; /* 防止縮小 */
-            background-color: #f0f0f0; /* 載入時底色 */
+            flex-shrink: 0;
+            background-color: #f0f0f0;
         }
         
-        /* 如果沒有圖片時隱藏 */
         .item-thumb[src=""], .item-thumb:not([src]) {
              display: none;
         }
@@ -99,9 +98,7 @@
         .item-price { color: #e91e63; font-weight: bold; }
         .item-note { color: #777; font-size: 0.9em; margin-top: 2px;}
 
-        /* 隱藏的 Canvas，用於裁切圖片 */
         #crop-canvas { display: none; }
-
     </style>
 </head>
 <body>
@@ -110,7 +107,7 @@
 
     <div class="upload-section">
         <label for="file-input" class="file-label">
-            📸 拍照或上傳截圖 (自動裁切)
+            📸 拍照或上傳截圖 (自動 OCR 辨識)
         </label>
         <input type="file" id="file-input" accept="image/*" capture="environment">
         <div id="loading">⏳ AI 正在努力辨識與裁切圖片...</div>
@@ -123,7 +120,6 @@
         </ul>
     </div>
 
-    <!-- 這是關鍵：隱藏的 Canvas 元素，用來在瀏覽器端做圖片裁切 -->
     <canvas id="crop-canvas"></canvas>
 
     <script>
@@ -137,6 +133,7 @@
         const cropCanvas = document.getElementById('crop-canvas');
         const ctx = cropCanvas.getContext('2d');
 
+        // 綁定檔案上傳事件（確保選取圖片後能順利觸發）
         fileInput.addEventListener('change', handleImageUpload);
 
         async function handleImageUpload(event) {
@@ -147,8 +144,8 @@
             shoppingList.innerHTML = '';
             errorMsg.style.display = 'none';
             loadingText.style.display = 'block';
-            fileInput.value = ''; // 允許重複上傳同一張檔名
-
+            const currentFileInput = fileInput;
+            
             try {
                 // 1. 將圖片轉為 Base64 字串
                 const base64Image = await fileToBase64(file);
@@ -175,6 +172,7 @@
                 errorMsg.style.display = 'block';
             } finally {
                 loadingText.style.display = 'none';
+                currentFileInput.value = ''; // 清空讓下次可以重複選擇同一張圖
             }
         }
 
@@ -190,29 +188,22 @@
 
         // 核心函數：渲染清單並在前端執行圖片裁切
         async function renderListWithCrops(items, originalBase64) {
-            // 如果沒有回傳任何商品
             if (!items || items.length === 0) {
                 shoppingList.innerHTML = '<li><em>AI 沒有識別到商品</em></li>';
                 return;
             }
 
-            // 先將原始 Base64 圖片載入 Image 物件，供後續 Canvas 使用
             const originalImg = new Image();
             originalImg.src = originalBase64;
-            await originalImg.decode(); // 等待圖片解碼完成
+            await originalImg.decode();
 
-            // 遍歷每一個商品，產生對應的 HTML DOM
             for (const item of items) {
                 const li = document.createElement('li');
-
-                // 建立一個 img 元素，準備放入裁切後的小圖
                 const imgThumb = document.createElement('img');
                 imgThumb.className = 'item-thumb';
 
-                // 關鍵：如果有回傳座標 (box_2d)，則執行客戶端裁切
                 if (item.box_2d && item.box_2d.length === 4) {
                     try {
-                        // 將歸一化座標 [ymin, xmin, ymax, xmax] (0-100) 轉為 Canvas 像素座標
                         const [ymin, xmin, ymax, xmax] = item.box_2d;
                         
                         const scaleX = originalImg.naturalWidth / 100;
@@ -223,30 +214,23 @@
                         const cropWidth = (xmax - xmin) * scaleX;
                         const cropHeight = (ymax - ymin) * scaleY;
 
-                        // 安全檢查：確保裁切範圍大於0
                         if (cropWidth > 0 && cropHeight > 0) {
-                            // 設定 Canvas 尺寸為裁切後的大小
                             cropCanvas.width = cropWidth;
                             cropCanvas.height = cropHeight;
 
-                            // 將原始圖片的指定區域繪製到 Canvas 上
                             ctx.drawImage(
                                 originalImg,
-                                cropX, cropY, cropWidth, cropHeight, // 原始圖片裁切區域
-                                0, 0, cropWidth, cropHeight // 繪製到 Canvas 的位置與大小
+                                cropX, cropY, cropWidth, cropHeight,
+                                0, 0, cropWidth, cropHeight
                             );
 
-                            // 將 Canvas 內容轉為 Base64 小圖並設定給 img 標籤
-                            imgThumb.src = cropCanvas.toDataURL('image/jpeg', 0.8); // 0.8 品質
+                            imgThumb.src = cropCanvas.toDataURL('image/jpeg', 0.8);
                         }
-
                     } catch (cropErr) {
                         console.error("客戶端裁切失敗:", cropErr);
-                        // 裁切失敗不影響文字顯示，只是不會顯示小圖
                     }
                 }
 
-                // 建立文字詳細資料區域
                 const detailsDiv = document.createElement('div');
                 detailsDiv.className = 'item-details';
 
@@ -262,13 +246,12 @@
                 noteP.className = 'item-note';
                 noteP.innerText = item.note || '';
 
-                // 組裝 HTML 結構
                 detailsDiv.appendChild(nameP);
                 detailsDiv.appendChild(priceSpan);
                 if (item.note) detailsDiv.appendChild(noteP);
 
-                li.appendChild(imgThumb); // 插入裁切縮圖
-                li.appendChild(detailsDiv); // 插入文字區域
+                li.appendChild(imgThumb);
+                li.appendChild(detailsDiv);
                 shoppingList.appendChild(li);
             }
         }
