@@ -4,6 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>日本購物小清單</title>
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#4CAF50">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="日本購物清單">
+
     <style>
         :root {
             --primary-color: #4CAF50;
@@ -16,30 +22,69 @@
             font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
             background-color: var(--bg-color);
             margin: 0;
-            padding: 20px;
+            padding: 0;
             display: flex;
             flex-direction: column;
             align-items: center;
         }
 
-        h1 { color: #333; margin-bottom: 10px; font-size: 1.4em; text-align: center; }
+        /* 頂部導覽列 */
+        .navbar {
+            width: 100%;
+            background: white;
+            padding: 15px 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-sizing: border-box;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
 
+        .menu-btn {
+            background: none;
+            border: none;
+            font-size: 1.5em;
+            cursor: pointer;
+            color: #333;
+        }
+
+        .nav-title {
+            font-size: 1.2em;
+            font-weight: bold;
+            color: #333;
+            margin: 0;
+        }
+
+        .container {
+            width: 90%;
+            max-width: 600px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px 0;
+            box-sizing: border-box;
+        }
+
+        /* 上傳區域 */
         .upload-section {
             background: white;
             padding: 20px;
             border-radius: 10px;
             box-shadow: 0 2px 5px rgba(0,0,0,0.1);
             text-align: center;
-            width: 90%;
-            max-width: 400px;
+            width: 100%;
             margin-bottom: 20px;
+            box-sizing: border-box;
         }
 
         .file-label {
             display: block;
             border: 2px dashed var(--primary-color);
             color: var(--primary-color);
-            padding: 25px;
+            padding: 20px;
             border-radius: 8px;
             cursor: pointer;
             transition: all 0.3s;
@@ -53,66 +98,235 @@
         #loading { color: #2196F3; }
         #error-msg { color: var(--danger-color); }
 
-        #list-section {
-            width: 90%;
-            max-width: 600px;
+        /* 清單區塊 */
+        .card-section {
+            width: 100%;
             background: white;
             border-radius: 10px;
             box-shadow: 0 2px 5px rgba(0,0,0,0.1);
             padding: 20px;
             box-sizing: border-box;
+            margin-bottom: 20px;
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-weight: bold;
+            font-size: 1.1em;
+            margin-bottom: 15px;
+            color: #333;
+            border-bottom: 2px solid var(--border-color);
+            padding-bottom: 8px;
         }
 
         ul { list-style-type: none; padding: 0; margin: 0; }
 
         li {
             border-bottom: 1px solid var(--border-color);
-            padding: 12px 0;
+            padding: 12px;
             display: flex;
-            align-items: flex-start;
+            align-items: center;
+            border-radius: 8px;
+            margin-bottom: 6px;
+            transition: background-color 0.2s;
         }
 
-        li:last-child { border-bottom: none; }
+        li:last-child { margin-bottom: 0; }
 
         .item-thumb {
-            width: 70px;
-            height: 70px;
+            width: 60px;
+            height: 60px;
             object-fit: cover;
             border-radius: 6px;
-            margin-right: 15px;
+            margin-right: 12px;
             border: 1px solid #eee;
             flex-shrink: 0;
             background-color: #f0f0f0;
         }
-        
-        .item-thumb[src=""], .item-thumb:not([src]) {
-             display: none;
-        }
+        .item-thumb[src=""], .item-thumb:not([src]) { display: none; }
 
         .item-details { flex-grow: 1; }
-        .item-name { font-weight: bold; font-size: 1.05em; margin: 0 0 5px 0; color: #333; }
-        .item-price { color: #e91e63; font-weight: bold; font-size: 1.05em; }
-        .item-note { color: #777; font-size: 0.85em; margin-top: 3px;}
+        .item-name { font-weight: bold; font-size: 1em; margin: 0 0 4px 0; color: #333; }
+        .item-price { color: #e91e63; font-weight: bold; font-size: 0.95em; }
+        .item-note { color: #777; font-size: 0.8em; margin-top: 2px;}
+
+        /* 已勾選項目的灰底與淡化效果（無刪除線） */
+        .checked-item {
+            background-color: #f0f0f0;
+            opacity: 0.6;
+        }
+        .checked-item .item-name { color: #555; }
+        .checked-item .item-price { color: #888; }
+        .checked-item .item-note { color: #999; }
+        .checked-item .item-thumb { filter: grayscale(80%); }
+
+        /* 按鈕與互動 */
+        .action-btn {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 6px 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.85em;
+            flex-shrink: 0;
+        }
+        .action-btn:hover { opacity: 0.9; }
+
+        /* 側邊欄抽屜 */
+        .drawer {
+            position: fixed;
+            top: 0;
+            left: -100%;
+            width: 85%;
+            max-width: 350px;
+            height: 100%;
+            background: white;
+            box-shadow: 2px 0 10px rgba(0,0,0,0.2);
+            z-index: 1000;
+            transition: left 0.3s ease;
+            box-sizing: border-box;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+        }
+        .drawer.open { left: 0; }
+
+        .drawer-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid var(--border-color);
+            padding-bottom: 10px;
+            margin-bottom: 15px;
+        }
+        .drawer-header h3 { margin: 0; color: #333; }
+        .close-btn { background: none; border: none; font-size: 1.5em; cursor: pointer; }
+
+        .drawer-content { flex-grow: 1; overflow-y: auto; }
+
+        .menu-section-title {
+            font-weight: bold;
+            color: #555;
+            margin: 15px 0 8px 0;
+            font-size: 0.95em;
+        }
+
+        .menu-item-link {
+            display: block;
+            padding: 10px;
+            background: #f9f9f9;
+            margin-bottom: 8px;
+            border-radius: 6px;
+            text-decoration: none;
+            color: #333;
+            font-weight: 500;
+            border: 1px solid #eee;
+        }
+        .menu-item-link:hover { background: #f1f1f1; }
+
+        .primary-full-btn {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            width: 100%;
+            font-weight: bold;
+            margin-top: 10px;
+        }
+
+        /* 遮罩背景 */
+        .overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.4);
+            display: none;
+            z-index: 999;
+        }
+        .overlay.show { display: block; }
+
+        /* 彈窗選擇加入清單 */
+        .modal {
+            position: fixed;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            z-index: 1100;
+            width: 80%;
+            max-width: 320px;
+            display: none;
+        }
+        .modal.show { display: block; }
+        .modal h3 { margin-top: 0; font-size: 1.1em; color: #333; }
+        .modal select { width: 100%; padding: 8px; margin: 10px 0 15px 0; border-radius: 5px; border: 1px solid #ddd; }
+        .modal-buttons { display: flex; justify-content: flex-end; gap: 10px; }
+        .modal-buttons button { padding: 6px 12px; border-radius: 4px; border: none; cursor: pointer; }
+        .btn-cancel { background: #ddd; color: #333; }
+        .btn-confirm { background: var(--primary-color); color: white; }
 
         #crop-canvas { display: none; }
     </style>
 </head>
 <body>
 
-    <h1>🛒 日本戰利品清單 (極速 AI 裁切)</h1>
-
-    <div class="upload-section">
-        <label for="file-input" class="file-label">
-            📸 選擇相片或拍照上傳 (極速辨識)
-        </label>
-        <input type="file" id="file-input" accept="image/*">
-        <div id="loading">⚡ AI 辨識中...</div>
-        <div id="error-msg">❌ 發生錯誤：未能成功辨識圖片</div>
+    <!-- 頂部導覽列 -->
+    <div class="navbar">
+        <button class="menu-btn" onclick="toggleDrawer(true)">☰</button>
+        <h1 class="nav-title" id="page-title">日本購物小清單</h1>
+        <div style="width: 24px;"></div>
     </div>
 
-    <div id="list-section">
-        <ul id="shopping-list">
-        </ul>
+    <div class="container" id="main-container">
+        <!-- 首頁預設畫面 -->
+        <div class="upload-section">
+            <label for="file-input" class="file-label">
+                📸 拍攝或上傳商品照片
+            </label>
+            <input type="file" id="file-input" accept="image/*">
+            <div id="loading">⚡ 極速壓縮與 AI 辨識中...</div>
+            <div id="error-msg">❌ 發生錯誤：未能成功辨識圖片</div>
+        </div>
+
+        <div class="card-section">
+            <div class="card-header">📦 最近一次辨識結果</div>
+            <ul id="shopping-list">
+                <li><em>尚無辨識紀錄，請點擊上方上傳照片</em></li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- 左側選單抽屜 -->
+    <div class="overlay" id="overlay" onclick="closeAllOverlays()"></div>
+    <div class="drawer" id="history-drawer">
+        <div class="drawer-header">
+            <h3>📑 功能選單</h3>
+            <button class="close-btn" onclick="toggleDrawer(false)">&times;</button>
+        </div>
+        <div class="drawer-content">
+            <a href="#" class="menu-item-link" onclick="showHomeView()">🏠 回首頁 (最近辨識)</a>
+            <a href="#" class="menu-item-link" onclick="showHistoryView()">📜 所有歷史辨識紀錄</a>
+            
+            <div class="menu-section-title">🛒 我的採買清單</div>
+            <div id="custom-lists-menu"></div>
+            <button class="primary-full-btn" onclick="createNewShoppingList()">＋ 建立新購物清單</button>
+        </div>
+    </div>
+
+    <!-- 選擇要加入哪個清單的彈窗 -->
+    <div class="modal" id="add-to-list-modal">
+        <h3>選擇要加入的購物清單</h3>
+        <select id="modal-list-select"></select>
+        <div class="modal-buttons">
+            <button class="btn-cancel" onclick="closeModal()">取消</button>
+            <button class="btn-confirm" onclick="confirmAddItemToList()">加入</button>
+        </div>
     </div>
 
     <canvas id="crop-canvas"></canvas>
@@ -122,25 +336,51 @@
 
         const fileInput = document.getElementById('file-input');
         const shoppingList = document.getElementById('shopping-list');
+        const mainContainer = document.getElementById('main-container');
+        const pageTitle = document.getElementById('page-title');
         const loadingText = document.getElementById('loading');
         const errorMsg = document.getElementById('error-msg');
         const cropCanvas = document.getElementById('crop-canvas');
         const ctx = cropCanvas.getContext('2d');
+        const drawer = document.getElementById('history-drawer');
+        const overlay = document.getElementById('overlay');
+        const modal = document.getElementById('add-to-list-modal');
+        const modalSelect = document.getElementById('modal-list-select');
+
+        let selectedItemForAdd = null;
+
+        document.addEventListener('DOMContentLoaded', () => {
+            loadLatestAndRefreshMenu();
+        });
 
         fileInput.addEventListener('change', handleImageUpload);
+
+        function toggleDrawer(open) {
+            if (open) {
+                drawer.classList.add('open');
+                overlay.classList.add('show');
+                renderCustomListsMenu();
+            } else {
+                drawer.classList.remove('open');
+                overlay.classList.remove('show');
+            }
+        }
+
+        function closeAllOverlays() {
+            toggleDrawer(false);
+            closeModal();
+        }
 
         async function handleImageUpload(event) {
             const file = event.target.files[0];
             if (!file) return;
 
-            shoppingList.innerHTML = '';
             errorMsg.style.display = 'none';
             loadingText.style.display = 'block';
             const currentFileInput = fileInput;
             
             try {
                 const compressedBase64 = await compressImage(file, 800, 0.8);
-                
                 const response = await fetch(WORKER_URL, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -148,12 +388,11 @@
                 });
 
                 const data = await response.json();
+                if (!response.ok || data.error) throw new Error(data.error || 'Worker response not ok');
 
-                if (!response.ok || data.error) {
-                    throw new Error(data.error || 'Worker response not ok');
-                }
-
-                await renderListWithCrops(data.items, compressedBase64);
+                const processedItems = await processItemsCrops(data.items, compressedBase64);
+                saveNewScanResult(processedItems);
+                showHomeView();
 
             } catch (err) {
                 console.error(err);
@@ -175,18 +414,15 @@
                     img.onload = () => {
                         let width = img.naturalWidth;
                         let height = img.naturalHeight;
-
                         if (width > maxWidth) {
                             height = Math.round((height * maxWidth) / width);
                             width = maxWidth;
                         }
-
                         const canvas = document.createElement('canvas');
                         canvas.width = width;
                         canvas.height = height;
                         const cCtx = canvas.getContext('2d');
                         cCtx.drawImage(img, 0, 0, width, height);
-
                         resolve(canvas.toDataURL('image/jpeg', quality));
                     };
                     img.onerror = (error) => reject(error);
@@ -195,74 +431,265 @@
             });
         }
 
-        async function renderListWithCrops(items, base64Image) {
-            if (!items || items.length === 0) {
-                shoppingList.innerHTML = '<li><em>AI 沒有識別到商品</em></li>';
-                return;
-            }
-
+        async function processItemsCrops(items, base64Image) {
+            if (!items || items.length === 0) return [];
             const originalImg = new Image();
             originalImg.src = base64Image;
             await originalImg.decode();
 
+            let results = [];
             for (const item of items) {
-                const li = document.createElement('li');
-                const imgThumb = document.createElement('img');
-                imgThumb.className = 'item-thumb';
-
+                let thumbUrl = '';
                 if (item.box_2d && item.box_2d.length === 4) {
                     try {
                         const [ymin, xmin, ymax, xmax] = item.box_2d;
-                        
-                        // 正確計算寬高比例像素
                         const scaleX = originalImg.naturalWidth / 100;
                         const scaleY = originalImg.naturalHeight / 100;
-
                         const cropX = xmin * scaleX;
                         const cropY = ymin * scaleY;
                         const cropWidth = (xmax - xmin) * scaleX;
-                        const cropHeight = (ymax - ymin) * scaleY; // 這裡已修正為 scaleY
+                        const cropHeight = (ymax - ymin) * scaleY;
 
                         if (cropWidth > 0 && cropHeight > 0) {
                             cropCanvas.width = cropWidth;
                             cropCanvas.height = cropHeight;
-
-                            ctx.drawImage(
-                                originalImg,
-                                cropX, cropY, cropWidth, cropHeight,
-                                0, 0, cropWidth, cropHeight
-                            );
-
-                            imgThumb.src = cropCanvas.toDataURL('image/jpeg', 0.8);
+                            ctx.drawImage(originalImg, cropX, cropY, cropWidth, cropHeight, 0, 0, cropWidth, cropHeight);
+                            thumbUrl = cropCanvas.toDataURL('image/jpeg', 0.8);
                         }
-                    } catch (cropErr) {
-                        console.error("客戶端裁切失敗:", cropErr);
-                    }
+                    } catch (cropErr) { console.error("裁切失敗:", cropErr); }
                 }
 
-                const detailsDiv = document.createElement('div');
-                detailsDiv.className = 'item-details';
-
-                const nameP = document.createElement('p');
-                nameP.className = 'item-name';
-                nameP.innerText = item.name || '未命名商品';
-
-                const priceSpan = document.createElement('span');
-                priceSpan.className = 'item-price';
-                priceSpan.innerText = item.price || '未標示';
-                
-                const noteP = document.createElement('p');
-                noteP.className = 'item-note';
-                noteP.innerText = item.note || '';
-
-                detailsDiv.appendChild(nameP);
-                detailsDiv.appendChild(priceSpan);
-                if (item.note) detailsDiv.appendChild(noteP);
-
-                li.appendChild(imgThumb);
-                li.appendChild(detailsDiv);
-                shoppingList.appendChild(li);
+                results.push({
+                    id: 'item_' + Math.random().toString(36).substr(2, 9),
+                    name: item.name || '未命名商品',
+                    price: item.price || '未標示',
+                    note: item.note || '',
+                    thumb: thumbUrl
+                });
             }
+            return results;
+        }
+
+        function saveNewScanResult(items) {
+            localStorage.setItem('latest_shopping_items', JSON.stringify(items));
+            let history = JSON.parse(localStorage.getItem('all_shopping_history') || '[]');
+            history.unshift({ time: new Date().toLocaleString(), items: items });
+            localStorage.setItem('all_shopping_history', JSON.stringify(history));
+        }
+
+        function showHomeView() {
+            toggleDrawer(false);
+            pageTitle.innerText = "日本購物小清單";
+            mainContainer.innerHTML = `
+                <div class="upload-section">
+                    <label for="file-input" class="file-label">📸 拍攝或上傳商品照片</label>
+                    <input type="file" id="file-input" accept="image/*" onchange="handleImageUpload(event)">
+                    <div id="loading">⚡ 極速壓縮與 AI 辨識中...</div>
+                    <div id="error-msg">❌ 發生錯誤：未能成功辨識圖片</div>
+                </div>
+                <div class="card-section">
+                    <div class="card-header">📦 最近一次辨識結果</div>
+                    <ul id="shopping-list"></ul>
+                </div>
+            `;
+            const latest = JSON.parse(localStorage.getItem('latest_shopping_items') || '[]');
+            const listUl = document.getElementById('shopping-list');
+            if (latest.length === 0) {
+                listUl.innerHTML = '<li><em>尚無辨識紀錄，請點擊上方上傳照片</em></li>';
+            } else {
+                latest.forEach(item => listUl.appendChild(createItemNode(item, true)));
+            }
+        }
+
+        function showHistoryView() {
+            toggleDrawer(false);
+            pageTitle.innerText = "歷史辨識紀錄";
+            mainContainer.innerHTML = `
+                <div class="card-section">
+                    <div class="card-header">📜 所有拍照紀錄</div>
+                    <div id="history-content"></div>
+                </div>
+            `;
+            const history = JSON.parse(localStorage.getItem('all_shopping_history') || '[]');
+            const container = document.getElementById('history-content');
+            if (history.length === 0) {
+                container.innerHTML = '<p><em>尚無歷史紀錄</em></p>';
+                return;
+            }
+
+            history.forEach(batch => {
+                const group = document.createElement('div');
+                group.style.marginBottom = "20px";
+                group.innerHTML = `<p style="font-weight:bold; color:#666; font-size:0.9em; margin:0 0 5px 0;">⏱️ ${batch.time}</p>`;
+                const ul = document.createElement('ul');
+                batch.items.forEach(item => ul.appendChild(createItemNode(item, true)));
+                group.appendChild(ul);
+                container.appendChild(group);
+            });
+        }
+
+        function createItemNode(item, showAddBtn = false, isChecked = false, customListName = null) {
+            const li = document.createElement('li');
+            if (isChecked) li.classList.add('checked-item');
+
+            if (customListName) {
+                const checkbox = document.createElement('input');
+                checkbox.type = 'checkbox';
+                checkbox.checked = isChecked;
+                checkbox.style.marginRight = '12px';
+                checkbox.style.transform = 'scale(1.3)';
+                checkbox.onchange = () => toggleCheckItem(customListName, item.id, checkbox.checked);
+                li.appendChild(checkbox);
+            }
+
+            const imgThumb = document.createElement('img');
+            imgThumb.className = 'item-thumb';
+            if (item.thumb) imgThumb.src = item.thumb;
+            li.appendChild(imgThumb);
+
+            const detailsDiv = document.createElement('div');
+            detailsDiv.className = 'item-details';
+            detailsDiv.innerHTML = `
+                <p class="item-name">${item.name}</p>
+                <span class="item-price">${item.price}</span>
+                ${item.note ? `<p class="item-note">${item.note}</p>` : ''}
+            `;
+            li.appendChild(detailsDiv);
+
+            if (showAddBtn) {
+                const addBtn = document.createElement('button');
+                addBtn.className = 'action-btn';
+                addBtn.innerText = '＋ 加入清單';
+                addBtn.onclick = () => openAddToListModal(item);
+                li.appendChild(addBtn);
+            }
+
+            return li;
+        }
+
+        function renderCustomListsMenu() {
+            const menuContainer = document.getElementById('custom-lists-menu');
+            const lists = JSON.parse(localStorage.getItem('custom_shopping_lists') || '{}');
+            const keys = Object.keys(lists);
+
+            menuContainer.innerHTML = '';
+            if (keys.length === 0) {
+                menuContainer.innerHTML = '<p style="font-size:0.85em; color:#888;">尚未建立任何清單</p>';
+                return;
+            }
+
+            keys.forEach(listName => {
+                const a = document.createElement('a');
+                a.href = '#';
+                a.className = 'menu-item-link';
+                a.innerText = `🛒 ${listName} (${lists[listName].length}件)`;
+                a.onclick = () => showCustomListView(listName);
+                menuContainer.appendChild(a);
+            });
+        }
+
+        function createNewShoppingList() {
+            const name = prompt('請輸入新購物清單名稱（例如：藥妝必買）：');
+            if (!name) return;
+            let lists = JSON.parse(localStorage.getItem('custom_shopping_lists') || '{}');
+            if (lists[name]) {
+                alert('此清單名稱已存在！');
+                return;
+            }
+            lists[name] = [];
+            localStorage.setItem('custom_shopping_lists', JSON.stringify(lists));
+            renderCustomListsMenu();
+            showCustomListView(name);
+        }
+
+        function openAddToListModal(item) {
+            let lists = JSON.parse(localStorage.getItem('custom_shopping_lists') || '{}');
+            const keys = Object.keys(lists);
+            if (keys.length === 0) {
+                alert('請先在左側選單建立至少一個購物清單！');
+                return;
+            }
+            selectedItemForAdd = item;
+            modalSelect.innerHTML = '';
+            keys.forEach(k => {
+                const opt = document.createElement('option');
+                opt.value = k;
+                opt.innerText = k;
+                modalSelect.appendChild(opt);
+            });
+            modal.classList.add('show');
+            overlay.classList.add('show');
+        }
+
+        function closeModal() {
+            modal.classList.remove('show');
+            overlay.classList.remove('show');
+            selectedItemForAdd = null;
+        }
+
+        function confirmAddItemToList() {
+            if (!selectedItemForAdd) return;
+            const targetList = modalSelect.value;
+            let lists = JSON.parse(localStorage.getItem('custom_shopping_lists') || '{}');
+            
+            if (lists[targetList]) {
+                lists[targetList].push({ item: selectedItemForAdd, checked: false });
+                localStorage.setItem('custom_shopping_lists', JSON.stringify(lists));
+                alert(`已成功加入「${targetList}」清單！`);
+            }
+            closeModal();
+        }
+
+        function showCustomListView(listName) {
+            toggleDrawer(false);
+            pageTitle.innerText = `清單：${listName}`;
+            mainContainer.innerHTML = `
+                <div class="card-section">
+                    <div class="card-header">
+                        <span>📋 ${listName}</span>
+                        <button class="action-btn" style="background-color:#ff5252;" onclick="deleteCustomList('${listName}')">刪除清單</button>
+                    </div>
+                    <ul id="custom-list-items"></ul>
+                </div>
+            `;
+
+            let lists = JSON.parse(localStorage.getItem('custom_shopping_lists') || '{}');
+            const items = lists[listName] || [];
+            const ul = document.getElementById('custom-list-items');
+
+            if (items.length === 0) {
+                ul.innerHTML = '<li><em>此清單目前沒有物品，快去歷史紀錄或首頁加入吧！</em></li>';
+                return;
+            }
+
+            items.forEach((entry) => {
+                ul.appendChild(createItemNode(entry.item, false, entry.checked, listName));
+            });
+        }
+
+        function toggleCheckItem(listName, itemId, isChecked) {
+            let lists = JSON.parse(localStorage.getItem('custom_shopping_lists') || '{}');
+            if (lists[listName]) {
+                const target = lists[listName].find(e => e.item.id === itemId);
+                if (target) {
+                    target.checked = isChecked;
+                    localStorage.setItem('custom_shopping_lists', JSON.stringify(lists));
+                    showCustomListView(listName);
+                }
+            }
+        }
+
+        function deleteCustomList(listName) {
+            if (confirm(`確定要刪除「${listName}」這張清單嗎？`)) {
+                let lists = JSON.parse(localStorage.getItem('custom_shopping_lists') || '{}');
+                delete lists[listName];
+                localStorage.setItem('custom_shopping_lists', JSON.stringify(lists));
+                showHomeView();
+            }
+        }
+
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('sw.js').catch(err => console.log('SW 註冊失敗', err));
         }
     </script>
 </body>
