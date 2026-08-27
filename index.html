@@ -139,10 +139,11 @@
                         statusEl.innerText = '⚠️ 沒有在圖片中找到商品，請手動填寫';
                     }
 
-                } catch (error) {
+                                } catch (error) {
                     console.error(error);
-                    statusEl.innerText = '❌ AI 辨識失敗，請檢查網路或稍後再試';
+                    statusEl.innerText = '❌ AI 辨識失敗：' + error.message;
                 }
+
             };
             reader.readAsDataURL(file);
         }
