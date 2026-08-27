@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>日本購物小清單 (AI 智慧裁切版)</title>
+    <title>日本購物小清單 (極速 AI 裁切版)</title>
     <style>
         :root {
             --primary-color: #4CAF50;
@@ -22,7 +22,7 @@
             align-items: center;
         }
 
-        h1 { color: #333; margin-bottom: 10px; }
+        h1 { color: #333; margin-bottom: 10px; font-size: 1.4em; text-align: center; }
 
         /* 上傳區域 */
         .upload-section {
@@ -40,7 +40,7 @@
             display: block;
             border: 2px dashed var(--primary-color);
             color: var(--primary-color);
-            padding: 30px;
+            padding: 25px;
             border-radius: 8px;
             cursor: pointer;
             transition: all 0.3s;
@@ -66,11 +66,11 @@
             box-sizing: border-box;
         }
 
-        ul { list-style-type: none; padding: 0; }
+        ul { list-style-type: none; padding: 0; margin: 0; }
 
         li {
             border-bottom: 1px solid var(--border-color);
-            padding: 10px 0;
+            padding: 12px 0;
             display: flex;
             align-items: flex-start;
         }
@@ -79,10 +79,10 @@
 
         /* 裁切縮圖樣式 */
         .item-thumb {
-            width: 60px;
-            height: 60px;
+            width: 70px;
+            height: 70px;
             object-fit: cover;
-            border-radius: 5px;
+            border-radius: 6px;
             margin-right: 15px;
             border: 1px solid #eee;
             flex-shrink: 0;
@@ -94,23 +94,23 @@
         }
 
         .item-details { flex-grow: 1; }
-        .item-name { font-weight: bold; font-size: 1.1em; margin: 0 0 5px 0; }
-        .item-price { color: #e91e63; font-weight: bold; }
-        .item-note { color: #777; font-size: 0.9em; margin-top: 2px;}
+        .item-name { font-weight: bold; font-size: 1.05em; margin: 0 0 5px 0; color: #333; }
+        .item-price { color: #e91e63; font-weight: bold; font-size: 1.05em; }
+        .item-note { color: #777; font-size: 0.85em; margin-top: 3px;}
 
         #crop-canvas { display: none; }
     </style>
 </head>
 <body>
 
-    <h1>🛒 日本戰利品清單 (AI 裁切版)</h1>
+    <h1>🛒 日本戰利品清單 (極速 AI 裁切)</h1>
 
     <div class="upload-section">
         <label for="file-input" class="file-label">
-            📸 選擇相片或拍照上傳
+            📸 選擇相片或拍照上傳 (極速辨識)
         </label>
         <input type="file" id="file-input" accept="image/*">
-        <div id="loading">⏳ AI 正在努力辨識與裁切圖片...</div>
+        <div id="loading">⚡ 極速壓縮與 AI 辨識中...</div>
         <div id="error-msg">❌ 發生錯誤：未能成功辨識圖片</div>
     </div>
 
@@ -123,7 +123,7 @@
     <canvas id="crop-canvas"></canvas>
 
     <script>
-        // 已直接寫入你的 Cloudflare Worker 網址
+        // 你的 Cloudflare Worker 網址
         const WORKER_URL = "https://jpprice-ocr.neptune8264.workers.dev";
 
         const fileInput = document.getElementById('file-input');
@@ -145,12 +145,14 @@
             const currentFileInput = fileInput;
             
             try {
-                const base64Image = await fileToBase64(file);
+                // 1. 在前端進行圖片壓縮與縮小，大幅提升上傳與 AI 處理速度
+                const compressedBase64 = await compressImage(file, 800, 0.8);
                 
+                // 2. 將壓縮後的 Base64 送往 Worker 進行辨識
                 const response = await fetch(WORKER_URL, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ image: base64Image })
+                    body: JSON.stringify({ image: compressedBase64 })
                 });
 
                 const data = await response.json();
@@ -159,7 +161,8 @@
                     throw new Error(data.error || 'Worker response not ok');
                 }
 
-                await renderListWithCrops(data.items, base64Image);
+                // 3. 渲染清單與裁切小圖（以壓縮後的圖片作為基準來裁切）
+                await renderListWithCrops(data.items, compressedBase64);
 
             } catch (err) {
                 console.error(err);
@@ -171,23 +174,48 @@
             }
         }
 
-        function fileToBase64(file) {
+        // 圖片壓縮輔助函數：限制最大寬度，並轉為 JPEG
+        function compressImage(file, maxWidth = 800, quality = 0.8) {
             return new Promise((resolve, reject) => {
                 const reader = new FileReader();
                 reader.readAsDataURL(file);
-                reader.onload = () => resolve(reader.result);
-                reader.onerror = error => reject(error);
+                reader.onload = (event) => {
+                    const img = new Image();
+                    img.src = event.target.result;
+                    img.onload = () => {
+                        let width = img.naturalWidth;
+                        let height = img.naturalHeight;
+
+                        // 超過最大寬度時等比例縮小
+                        if (width > maxWidth) {
+                            height = Math.round((height * maxWidth) / width);
+                            width = maxWidth;
+                        }
+
+                        const canvas = document.createElement('canvas');
+                        canvas.width = width;
+                        canvas.height = height;
+                        const cCtx = canvas.getContext('2d');
+                        cCtx.drawImage(img, 0, 0, width, height);
+
+                        // 輸出壓縮後的 Base64
+                        resolve(canvas.toDataURL('image/jpeg', quality));
+                    };
+                    img.onerror = (error) => reject(error);
+                };
+                reader.onerror = (error) => reject(error);
             });
         }
 
-        async function renderListWithCrops(items, originalBase64) {
+        // 核心函數：渲染清單並在前端執行圖片裁切
+        async function renderListWithCrops(items, base64Image) {
             if (!items || items.length === 0) {
                 shoppingList.innerHTML = '<li><em>AI 沒有識別到商品</em></li>';
                 return;
             }
 
             const originalImg = new Image();
-            originalImg.src = originalBase64;
+            originalImg.src = base64Image;
             await originalImg.decode();
 
             for (const item of items) {
@@ -205,7 +233,7 @@
                         const cropX = xmin * scaleX;
                         const cropY = ymin * scaleY;
                         const cropWidth = (xmax - xmin) * scaleX;
-                        const cropHeight = (ymax - ymin) * scaleY;
+                        const cropHeight = (ymax - ymin) * scaleX; // 修正比例對應
 
                         if (cropWidth > 0 && cropHeight > 0) {
                             cropCanvas.width = cropWidth;
