@@ -11,389 +11,176 @@
     <meta name="apple-mobile-web-app-title" content="日本購物清單">
 
     <style>
-        /* 四季動態主題變數定義 */
         :root {
-            --bg-color: #fafafa;
+            --bg-color: #faf9f6;
             --card-bg: #ffffff;
             --text-main: #222222;
             --text-sub: #777777;
             --border-color: #eeeeee;
-            --accent-color: #2e7d32;
+            --theme-primary: #ff7043;
+            --theme-light: #fbe9e7;
             --danger-color: #d32f2f;
-            --theme-primary: #e91e63; /* 預設秋/春過渡 */
-            --theme-light: #fce4ec;
         }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
             background-color: var(--bg-color);
             color: var(--text-main);
-            margin: 0;
-            padding: 0;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
+            margin: 0; padding: 0;
+            display: flex; flex-direction: column; align-items: center;
+            position: relative; min-height: 100vh;
         }
 
-        /* 頂部導覽列：極簡俐落 */
+        #seasonal-canvas {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none; z-index: 1;
+        }
+
+        .navbar, .container, .drawer, .overlay, .modal {
+            position: relative; z-index: 10;
+        }
+
         .navbar {
-            width: 100%;
-            background: var(--card-bg);
-            padding: 14px 20px;
+            width: 100%; background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(8px); padding: 14px 20px;
             border-bottom: 1px solid var(--border-color);
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            box-sizing: border-box;
-            position: sticky;
-            top: 0;
-            z-index: 100;
+            display: flex; align-items: center; justify-content: space-between;
+            box-sizing: border-box; position: sticky; top: 0;
         }
 
-        .menu-btn {
-            background: none;
-            border: none;
-            font-size: 1.3em;
-            cursor: pointer;
-            color: var(--text-main);
-            padding: 0;
-        }
-
-        .nav-title {
-            font-size: 1.05em;
-            font-weight: 600;
-            letter-spacing: 0.5px;
-            margin: 0;
-        }
+        .menu-btn { background: none; border: none; font-size: 1.3em; cursor: pointer; color: var(--text-main); padding: 0; }
+        .nav-title { font-size: 1.05em; font-weight: 600; margin: 0; }
 
         .container {
-            width: 92%;
-            max-width: 540px;
-            display: flex;
-            flex-direction: column;
-            gap: 16px;
-            padding: 20px 0;
-            box-sizing: border-box;
+            width: 92%; max-width: 540px;
+            display: flex; flex-direction: column; gap: 16px;
+            padding: 20px 0; box-sizing: border-box;
         }
 
-        /* 上傳區域：簡約虛線框 */
         .upload-section {
-            background: var(--card-bg);
-            padding: 16px;
-            border-radius: 12px;
-            border: 1px solid var(--border-color);
-            text-align: center;
+            background: var(--card-bg); padding: 16px; border-radius: 12px;
+            border: 1px solid var(--border-color); text-align: center;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.03);
         }
 
         .file-label {
-            display: block;
-            border: 1.5px dashed #cccccc;
-            color: var(--text-main);
-            padding: 20px;
-            border-radius: 8px;
-            cursor: pointer;
-            transition: all 0.2s;
-            font-weight: 500;
-            font-size: 0.95em;
+            display: block; border: 1.5px dashed var(--theme-primary);
+            color: var(--theme-primary); background-color: var(--theme-light);
+            padding: 20px; border-radius: 8px; cursor: pointer;
+            font-weight: 600; font-size: 0.95em; transition: opacity 0.2s;
         }
-
-        .file-label:hover { 
-            border-color: var(--theme-primary); 
-            color: var(--theme-primary);
-            background-color: var(--theme-light);
-        }
+        .file-label:hover { opacity: 0.85; }
         #file-input { display: none; }
 
         #loading, #error-msg { display: none; margin-top: 10px; font-size: 0.9em; font-weight: 500; }
-        #loading { color: #1976d2; }
+        #loading { color: var(--theme-primary); }
         #error-msg { color: var(--danger-color); }
 
-        /* 清單卡片區塊 */
         .card-section {
-            width: 100%;
-            background: var(--card-bg);
-            border-radius: 12px;
-            border: 1px solid var(--border-color);
-            padding: 16px 20px;
-            box-sizing: border-box;
+            width: 100%; background: var(--card-bg); border-radius: 12px;
+            border: 1px solid var(--border-color); padding: 16px 20px;
+            box-sizing: border-box; box-shadow: 0 4px 20px rgba(0,0,0,0.03);
         }
 
         .card-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            font-weight: 600;
-            font-size: 0.95em;
-            color: var(--text-main);
-            border-bottom: 1px solid var(--border-color);
-            padding-bottom: 12px;
-            margin-bottom: 4px;
+            display: flex; justify-content: space-between; align-items: center;
+            font-weight: 600; font-size: 0.95em; border-bottom: 1px solid var(--border-color);
+            padding-bottom: 12px; margin-bottom: 4px;
         }
 
-        ul { list-style-type: none; padding: 0; margin: 0; }
-
+        ul { list-style: none; padding: 0; margin: 0; }
         li {
-            border-bottom: 1px solid var(--border-color);
-            padding: 12px 0;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            transition: background-color 0.2s;
+            border-bottom: 1px solid var(--border-color); padding: 12px 0;
+            display: flex; align-items: center; gap: 10px;
         }
-
         li:first-child { border-top: none; }
         li:last-child { border-bottom: none; }
 
         .item-thumb {
-            width: 50px;
-            height: 50px;
-            object-fit: cover;
-            border-radius: 6px;
-            border: 1px solid var(--border-color);
-            flex-shrink: 0;
-            background-color: #f5f5f5;
+            width: 50px; height: 50px; object-fit: cover; border-radius: 6px;
+            border: 1px solid var(--border-color); flex-shrink: 0; background: #f5f5f5;
         }
-        .item-thumb[src=""], .item-thumb:not([src]) { display: none; }
+        .item-thumb:not([src]), .item-thumb[src=""] { display: none; }
 
         .item-details { flex-grow: 1; min-width: 0; }
-        .item-name { font-weight: 600; font-size: 0.95em; margin: 0 0 2px 0; color: var(--text-main); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .item-price { color: #c2185b; font-weight: 600; font-size: 0.9em; }
+        .item-name { font-weight: 600; font-size: 0.95em; margin: 0 0 2px 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .item-price { color: var(--theme-primary); font-weight: 600; font-size: 0.9em; }
         .item-note { color: var(--text-sub); font-size: 0.8em; margin-top: 2px; }
 
-        /* 實際購買價格輸入欄位 */
-        .purchase-input-group {
-            display: flex;
-            align-items: center;
-            gap: 4px;
-            margin-top: 4px;
-            font-size: 0.85em;
-            color: var(--text-sub);
-        }
-        .purchase-input {
-            width: 85px;
-            padding: 3px 6px;
-            border: 1px solid var(--border-color);
-            border-radius: 4px;
-            font-size: 0.9em;
-            outline: none;
-        }
-        .purchase-input:focus {
-            border-color: var(--theme-primary);
-        }
+        .purchase-input-group { display: flex; align-items: center; gap: 4px; margin-top: 4px; font-size: 0.85em; color: var(--text-sub); }
+        .purchase-input { width: 85px; padding: 3px 6px; border: 1px solid var(--border-color); border-radius: 4px; font-size: 0.9em; outline: none; }
+        .purchase-input:focus { border-color: var(--theme-primary); }
 
-        /* 已勾選項目的柔和灰底與降彩度 */
-        li.checked-item {
-            background-color: #f5f5f5;
-            padding-left: 8px;
-            padding-right: 8px;
-            border-radius: 6px;
-            border-bottom: none;
-            opacity: 0.55;
-        }
+        li.checked-item { background: #f5f5f5; padding: 12px 8px; border-radius: 6px; border-bottom: none; opacity: 0.55; }
         li.checked-item .item-name { color: #555; }
         li.checked-item .item-price { color: #888; }
-        li.checked-item .item-note { color: #999; }
         li.checked-item .item-thumb { filter: grayscale(100%); }
 
-        /* 按鈕風格群組 */
-        .item-actions {
-            display: flex;
-            gap: 6px;
-            flex-shrink: 0;
-        }
-
+        .item-actions { display: flex; gap: 6px; flex-shrink: 0; }
         .action-btn {
-            background-color: transparent;
-            color: var(--theme-primary);
-            border: 1px solid var(--theme-primary);
-            padding: 5px 10px;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 0.8em;
-            font-weight: 500;
-            transition: all 0.2s;
+            background: none; color: var(--theme-primary); border: 1px solid var(--theme-primary);
+            padding: 5px 10px; border-radius: 6px; cursor: pointer; font-size: 0.8em; font-weight: 500; transition: all 0.2s;
         }
-        .action-btn:hover { background-color: var(--theme-primary); color: white; }
+        .action-btn:hover { background: var(--theme-primary); color: white; }
+        .danger-btn { color: var(--danger-color); border-color: var(--danger-color); }
+        .danger-btn:hover { background: var(--danger-color); color: white; }
 
-        .danger-btn {
-            color: var(--danger-color);
-            border-color: var(--danger-color);
-        }
-        .danger-btn:hover { background-color: var(--danger-color); color: white; }
-
-        /* 側邊欄抽屜 */
         .drawer {
-            position: fixed;
-            top: 0;
-            left: -100%;
-            width: 80%;
-            max-width: 300px;
-            height: 100%;
-            background: var(--card-bg);
-            border-right: 1px solid var(--border-color);
-            z-index: 1000;
-            transition: left 0.25s ease;
-            box-sizing: border-box;
-            padding: 20px;
-            display: flex;
-            flex-direction: column;
+            position: fixed; top: 0; left: -100%; width: 80%; max-width: 300px; height: 100%;
+            background: var(--card-bg); border-right: 1px solid var(--border-color);
+            z-index: 1000; transition: left 0.25s ease; box-sizing: border-box; padding: 20px;
+            display: flex; flex-direction: column;
         }
         .drawer.open { left: 0; }
-
-        .drawer-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border-bottom: 1px solid var(--border-color);
-            padding-bottom: 12px;
-            margin-bottom: 12px;
-        }
-        .drawer-header h3 { margin: 0; font-size: 1em; font-weight: 600; }
+        .drawer-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 12px; margin-bottom: 12px; }
+        .drawer-header h3 { margin: 0; font-size: 1em; }
         .close-btn { background: none; border: none; font-size: 1.2em; cursor: pointer; color: var(--text-sub); }
-
         .drawer-content { flex-grow: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 4px; }
-
-        .menu-section-title {
-            font-weight: 600;
-            color: var(--text-sub);
-            margin: 16px 0 6px 0;
-            font-size: 0.85em;
-            letter-spacing: 0.5px;
-        }
+        .menu-section-title { font-weight: 600; color: var(--text-sub); margin: 16px 0 6px 0; font-size: 0.85em; }
 
         .menu-item-link {
-            display: block;
-            padding: 10px 12px;
-            background: transparent;
-            margin-bottom: 2px;
-            border-radius: 6px;
-            text-decoration: none;
-            color: var(--text-main);
-            font-weight: 500;
-            font-size: 0.9em;
-            transition: background 0.15s;
+            display: block; padding: 10px 12px; border-radius: 6px; text-decoration: none;
+            color: var(--text-main); font-weight: 500; font-size: 0.9em; transition: background 0.15s;
         }
-        .menu-item-link:hover { background: #f5f5f5; }
+        .menu-item-link:hover { background: var(--theme-light); color: var(--theme-primary); }
 
         .primary-full-btn {
-            background-color: var(--text-main);
-            color: white;
-            border: none;
-            padding: 10px;
-            border-radius: 6px;
-            cursor: pointer;
-            width: 100%;
-            font-weight: 500;
-            font-size: 0.9em;
-            margin-top: 12px;
+            background: var(--theme-primary); color: white; border: none; padding: 10px;
+            border-radius: 6px; cursor: pointer; width: 100%; font-weight: 500; font-size: 0.9em; margin-top: 12px;
         }
         .primary-full-btn:hover { opacity: 0.85; }
 
-        /* 遮罩背景 */
-        .overlay {
-            position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.3);
-            display: none;
-            z-index: 999;
-        }
+        .overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.3); display: none; z-index: 999; }
         .overlay.show { display: block; }
 
-        /* 通用彈窗樣式 */
         .modal {
-            position: fixed;
-            top: 50%; left: 50%;
-            transform: translate(-50%, -50%);
-            background: var(--card-bg);
-            padding: 24px;
-            border-radius: 16px;
-            border: 1px solid var(--border-color);
-            box-shadow: 0 12px 30px rgba(0,0,0,0.12);
-            z-index: 1100;
-            width: 88%;
-            max-width: 360px;
-            max-height: 80vh;
-            display: none;
-            box-sizing: border-box;
-            flex-direction: column;
+            position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            background: var(--card-bg); padding: 24px; border-radius: 16px;
+            border: 1px solid var(--border-color); box-shadow: 0 12px 30px rgba(0,0,0,0.12);
+            z-index: 1100; width: 88%; max-width: 360px; max-height: 80vh;
+            display: none; box-sizing: border-box; flex-direction: column;
         }
         .modal.show { display: flex; }
-        .modal h3 { margin: 0 0 16px 0; font-size: 1.05em; font-weight: 600; color: var(--text-main); text-align: center; flex-shrink: 0; }
-        
-        .modal-list-container {
-            overflow-y: auto;
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-            margin-bottom: 16px;
-            flex-grow: 1;
-        }
-
+        .modal h3 { margin: 0 0 16px 0; font-size: 1.05em; text-align: center; }
+        .modal-list-container { overflow-y: auto; display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px; flex-grow: 1; }
         .modal-list-item {
-            padding: 12px 14px;
-            background: #f8f9fa;
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            font-size: 0.95em;
-            font-weight: 500;
-            cursor: pointer;
-            transition: all 0.15s;
-            text-align: center;
+            padding: 12px 14px; background: #f8f9fa; border: 1px solid var(--border-color);
+            border-radius: 8px; font-size: 0.95em; font-weight: 500; cursor: pointer; text-align: center;
         }
-        .modal-list-item:hover {
-            background: var(--theme-primary);
-            color: white;
-            border-color: var(--theme-primary);
-        }
-
-        .modal-item-row {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 8px 10px;
-            background: #f9f9f9;
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            gap: 8px;
-        }
-        .modal-item-info {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            flex-grow: 1;
-            min-width: 0;
-            text-align: left;
-        }
-        .modal-item-info img {
-            width: 40px; height: 40px; object-fit: cover; border-radius: 4px; border: 1px solid var(--border-color); flex-shrink: 0;
-        }
-        .modal-item-text {
-            font-size: 0.85em;
-            font-weight: 600;
-            color: var(--text-main);
-            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-        }
-
-        .modal-close-btn {
-            width: 100%;
-            padding: 10px;
-            background: #f0f0f0;
-            border: none;
-            border-radius: 8px;
-            font-size: 0.9em;
-            font-weight: 500;
-            color: var(--text-main);
-            cursor: pointer;
-            flex-shrink: 0;
-        }
+        .modal-list-item:hover { background: var(--theme-primary); color: white; border-color: var(--theme-primary); }
+        .modal-item-row { display: flex; align-items: center; justify-content: space-between; padding: 8px 10px; background: #f9f9f9; border: 1px solid var(--border-color); border-radius: 8px; gap: 8px; }
+        .modal-item-info { display: flex; align-items: center; gap: 8px; flex-grow: 1; min-width: 0; }
+        .modal-item-info img { width: 40px; height: 40px; object-fit: cover; border-radius: 4px; }
+        .modal-item-text { font-size: 0.85em; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .modal-close-btn { width: 100%; padding: 10px; background: #f0f0f0; border: none; border-radius: 8px; font-size: 0.9em; cursor: pointer; }
         .modal-close-btn:hover { background: #e0e0e0; }
-
         #crop-canvas { display: none; }
     </style>
 </head>
 <body>
 
-    <!-- 頂部導覽列 -->
+    <canvas id="seasonal-canvas"></canvas>
+
     <div class="navbar">
         <button class="menu-btn" onclick="toggleDrawer(true)">☰</button>
         <h1 class="nav-title" id="page-title">日本購物小清單</h1>
@@ -401,23 +188,18 @@
     </div>
 
     <div class="container" id="main-container">
-        <!-- 首頁預設畫面：無辨識結果時維持乾淨空白 -->
         <div class="upload-section">
-            <label for="file-input" class="file-label">
-                ＋ 拍攝或上傳商品照片
-            </label>
+            <label for="file-input" class="file-label">⛩️ 拍攝或上傳商品照片</label>
             <input type="file" id="file-input" accept="image/*">
             <div id="loading">⚡ AI 辨識處理中...</div>
             <div id="error-msg">❌ 辨識失敗，請再試一次</div>
         </div>
-
         <div class="card-section" id="result-card-section" style="display: none;">
             <div class="card-header">辨識結果</div>
             <ul id="shopping-list"></ul>
         </div>
     </div>
 
-    <!-- 左側選單抽屜 -->
     <div class="overlay" id="overlay" onclick="closeAllOverlays()"></div>
     <div class="drawer" id="history-drawer">
         <div class="drawer-header">
@@ -427,21 +209,18 @@
         <div class="drawer-content">
             <a href="#" class="menu-item-link" onclick="showHomeView()">Home</a>
             <a href="#" class="menu-item-link" onclick="showHistoryView()">價格庫</a>
-            
             <div class="menu-section-title">我的清單</div>
             <div id="custom-lists-menu"></div>
             <button class="primary-full-btn" onclick="createNewShoppingList()">＋ 建立新清單</button>
         </div>
     </div>
 
-    <!-- 彈窗 1：選擇要加入的目標清單 -->
     <div class="modal" id="add-to-list-modal">
         <h3>選擇要加入的清單</h3>
         <div class="modal-list-container" id="modal-list-container"></div>
         <button class="modal-close-btn" onclick="closeModal()">取消</button>
     </div>
 
-    <!-- 彈窗 2：從價格庫挑選商品加入當前清單 -->
     <div class="modal" id="pick-from-history-modal">
         <h3 id="pick-modal-title">從價格庫挑選商品加入</h3>
         <div class="modal-list-container" id="pick-modal-list-container"></div>
@@ -452,7 +231,6 @@
 
     <script>
         const WORKER_URL = "https://jpprice-ocr.neptune8264.workers.dev";
-
         const fileInput = document.getElementById('file-input');
         const mainContainer = document.getElementById('main-container');
         const pageTitle = document.getElementById('page-title');
@@ -461,168 +239,188 @@
         const drawer = document.getElementById('history-drawer');
         const overlay = document.getElementById('overlay');
         const modal = document.getElementById('add-to-list-modal');
-        const modalListContainer = document.getElementById('modal-list-container');
         const pickModal = document.getElementById('pick-from-history-modal');
-        const pickModalListContainer = document.getElementById('pick-modal-list-container');
-        const pickModalTitle = document.getElementById('pick-modal-title');
-
+        
         let selectedItemForAdd = null;
         let activeCustomListForAdding = null;
 
         document.addEventListener('DOMContentLoaded', () => {
-            applySeasonalTheme();
+            initThemeAndJapaneseEffects();
             fileInput.addEventListener('change', handleImageUpload);
         });
 
-        // 依據當前月份自動套用四季風格
-        function applySeasonalTheme() {
+        function initThemeAndJapaneseEffects() {
             const month = new Date().getMonth() + 1;
-            let primary, light;
-            if (month >= 3 && month <= 5) {
-                // 春天：櫻花粉紅風格
-                primary = '#e91e63';
-                light = '#fce4ec';
-            } else if (month >= 6 && month <= 8) {
-                // 夏天：水蜜桃風格
-                primary = '#ff7043';
-                light = '#fbe9e7';
-            } else if (month >= 9 && month <= 11) {
-                // 秋天：楓葉暖褐風格
-                primary = '#d84315';
-                light = '#fbe9e7';
-            } else {
-                // 冬天：溫泉舒適藍灰風格
-                primary = '#0288d1';
-                light = '#e1f5fe';
-            }
+            let primary, light, season;
+            if (month >= 3 && month <= 5) { primary = '#e91e63'; light = '#fce4ec'; season = 'sakura'; }
+            else if (month >= 6 && month <= 8) { primary = '#ff7043'; light = '#fbe9e7'; season = 'sun'; }
+            else if (month >= 9 && month <= 11) { primary = '#d84315'; light = '#fbe9e7'; season = 'maple'; }
+            else { primary = '#0288d1'; light = '#e1f5fe'; season = 'snow'; }
+
             document.documentElement.style.setProperty('--theme-primary', primary);
             document.documentElement.style.setProperty('--theme-light', light);
+            initJapaneseCanvas(season);
+        }
+
+        function initJapaneseCanvas(seasonType) {
+            const canvas = document.getElementById('seasonal-canvas');
+            const sCtx = canvas.getContext('2d');
+            
+            function resize() {
+                canvas.width = window.innerWidth;
+                canvas.height = window.innerHeight;
+            }
+            resize();
+            window.addEventListener('resize', resize);
+
+            let particles = Array.from({ length: 22 }, () => ({
+                x: Math.random() * canvas.width,
+                y: Math.random() * canvas.height,
+                radius: Math.random() * 5 + 3,
+                speedY: Math.random() * 0.6 + 0.2,
+                speedX: Math.random() * 0.4 - 0.2,
+                opacity: Math.random() * 0.4 + 0.1
+            }));
+
+            function drawJapaneseSilhouettes(w, h) {
+                sCtx.fillStyle = 'rgba(0, 0, 0, 0.025)';
+                sCtx.beginPath();
+                sCtx.moveTo(0, h);
+                sCtx.lineTo(0, h - 120);
+                sCtx.quadraticCurveTo(w * 0.3, h - 200, w * 0.6, h - 100);
+                sCtx.quadraticCurveTo(w * 0.8, h - 40, w, h - 150);
+                sCtx.lineTo(w, h);
+                sCtx.closePath();
+                sCtx.fill();
+
+                sCtx.fillStyle = 'rgba(255, 112, 67, 0.08)';
+                sCtx.beginPath();
+                sCtx.arc(w - 40, 90, 18, 0, Math.PI * 2);
+                sCtx.fill();
+                sCtx.strokeStyle = 'rgba(255, 112, 67, 0.15)';
+                sCtx.lineWidth = 1.5;
+                sCtx.beginPath();
+                sCtx.moveTo(w - 40, 68); sCtx.lineTo(w - 40, 112);
+                sCtx.stroke();
+            }
+
+            function animate() {
+                sCtx.clearRect(0, 0, canvas.width, canvas.height);
+                drawJapaneseSilhouettes(canvas.width, canvas.height);
+
+                particles.forEach(p => {
+                    sCtx.save();
+                    sCtx.globalAlpha = p.opacity;
+                    sCtx.fillStyle = seasonType === 'sakura' ? '#ffb7c5' :
+                                     seasonType === 'sun' ? '#ff7043' :
+                                     seasonType === 'maple' ? '#d84315' : '#ffffff';
+                    sCtx.beginPath();
+                    sCtx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+                    sCtx.fill();
+                    sCtx.restore();
+
+                    p.y += p.speedY;
+                    p.x += p.speedX + Math.sin(p.y / 40) * 0.2;
+                    if (p.y > canvas.height + 10) { p.y = -10; p.x = Math.random() * canvas.width; }
+                });
+                requestAnimationFrame(animate);
+            }
+            animate();
         }
 
         function toggleDrawer(open) {
-            if (open) {
-                drawer.classList.add('open');
-                overlay.classList.add('show');
-                renderCustomListsMenu();
-            } else {
-                drawer.classList.remove('open');
-                overlay.classList.remove('show');
-            }
+            drawer.classList.toggle('open', open);
+            overlay.classList.toggle('show', open);
+            if (open) renderCustomListsMenu();
         }
 
         function closeAllOverlays() {
             toggleDrawer(false);
-            closeModal();
-            closePickModal();
+            modal.classList.remove('show');
+            pickModal.classList.remove('show');
+            overlay.classList.remove('show');
         }
 
-        async function handleImageUpload(event) {
-            const file = event.target.files[0];
+        async function handleImageUpload(e) {
+            const file = e.target.files[0];
             if (!file) return;
-
-            const errorMsg = document.getElementById('error-msg');
-            const loadingText = document.getElementById('loading');
-            errorMsg.style.display = 'none';
-            loadingText.style.display = 'block';
-            const currentFileInput = fileInput;
+            const errEl = document.getElementById('error-msg'), loadEl = document.getElementById('loading');
+            errEl.style.display = 'none'; loadEl.style.display = 'block';
             
             try {
-                const compressedBase64 = await compressImage(file, 500, 0.75);
-                const response = await fetch(WORKER_URL, {
+                const base64 = await compressImage(file, 500, 0.75);
+                const res = await fetch(WORKER_URL, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ image: compressedBase64 })
+                    body: JSON.stringify({ image: base64 })
                 });
+                const data = await res.json();
+                if (!res.ok || data.error) throw new Error(data.error || 'Failed');
 
-                const data = await response.json();
-                if (!response.ok || data.error) throw new Error(data.error || 'Worker response not ok');
-
-                const processedItems = await processItemsCrops(data.items, compressedBase64);
-                
-                if (processedItems.length > 0) {
-                    saveToHistory(processedItems);
-                    renderHomeItems(processedItems);
+                const items = await processCrops(data.items, base64);
+                if (items.length > 0) {
+                    saveHistory(items);
+                    renderHomeItems(items);
                 } else {
-                    // 若無辨識結果維持空白
                     document.getElementById('result-card-section').style.display = 'none';
                 }
-
             } catch (err) {
                 console.error(err);
-                errorMsg.style.display = 'block';
+                errEl.style.display = 'block';
             } finally {
-                loadingText.style.display = 'none';
-                currentFileInput.value = '';
+                loadEl.style.display = 'none';
+                fileInput.value = '';
             }
         }
 
-        function compressImage(file, maxWidth = 500, quality = 0.75) {
-            return new Promise((resolve, reject) => {
+        function compressImage(file, maxW = 500, quality = 0.75) {
+            return new Promise((resolve) => {
                 const reader = new FileReader();
                 reader.readAsDataURL(file);
-                reader.onload = (event) => {
+                reader.onload = (e) => {
                     const img = new Image();
-                    img.src = event.target.result;
+                    img.src = e.target.result;
                     img.onload = () => {
-                        let width = img.naturalWidth;
-                        let height = img.naturalHeight;
-                        if (width > maxWidth) {
-                            height = Math.round((height * maxWidth) / width);
-                            width = maxWidth;
-                        }
-                        const canvas = document.createElement('canvas');
-                        canvas.width = width;
-                        canvas.height = height;
-                        const cCtx = canvas.getContext('2d');
-                        cCtx.drawImage(img, 0, 0, width, height);
-                        resolve(canvas.toDataURL('image/jpeg', quality));
+                        let w = img.naturalWidth, h = img.naturalHeight;
+                        if (w > maxW) { h = Math.round((h * maxW) / w); w = maxW; }
+                        cropCanvas.width = w; cropCanvas.height = h;
+                        cropCanvas.getContext('2d').drawImage(img, 0, 0, w, h);
+                        resolve(cropCanvas.toDataURL('image/jpeg', quality));
                     };
-                    img.onerror = (error) => reject(error);
                 };
-                reader.onerror = (error) => reject(error);
             });
         }
 
-        async function processItemsCrops(items, base64Image) {
-            if (!items || items.length === 0) return [];
-            const originalImg = new Image();
-            originalImg.src = base64Image;
-            await originalImg.decode();
-
+        async function processCrops(items, base64) {
+            if (!items?.length) return [];
+            const img = new Image(); img.src = base64; await img.decode();
             let results = [];
             for (const item of items) {
-                let thumbUrl = '';
-                if (item.box_2d && item.box_2d.length === 4) {
-                    try {
-                        const [ymin, xmin, ymax, xmax] = item.box_2d;
-                        const cropX = (xmin / 1000) * originalImg.naturalWidth;
-                        const cropY = (ymin / 1000) * originalImg.naturalHeight;
-                        const cropWidth = ((xmax - xmin) / 1000) * originalImg.naturalWidth;
-                        const cropHeight = ((ymax - ymin) / 1000) * originalImg.naturalHeight;
-
-                        if (cropWidth > 0 && cropHeight > 0) {
-                            cropCanvas.width = cropWidth;
-                            cropCanvas.height = cropHeight;
-                            ctx.drawImage(originalImg, cropX, cropY, cropWidth, cropHeight, 0, 0, cropWidth, cropHeight);
-                            thumbUrl = cropCanvas.toDataURL('image/jpeg', 0.8);
-                        }
-                    } catch (cropErr) { console.error("裁切失敗:", cropErr); }
+                let thumb = '';
+                if (item.box_2d?.length === 4) {
+                    const [ymin, xmin, ymax, xmax] = item.box_2d;
+                    const x = (xmin / 1000) * img.naturalWidth, y = (ymin / 1000) * img.naturalHeight;
+                    const w = ((xmax - xmin) / 1000) * img.naturalWidth, h = ((ymax - ymin) / 1000) * img.naturalHeight;
+                    if (w > 0 && h > 0) {
+                        cropCanvas.width = w; cropCanvas.height = h;
+                        cropCanvas.getContext('2d').drawImage(img, x, y, w, h, 0, 0, w, h);
+                        thumb = cropCanvas.toDataURL('image/jpeg', 0.8);
+                    }
                 }
-
                 results.push({
                     id: 'item_' + Math.random().toString(36).substr(2, 9),
                     name: item.name || '未命名商品',
-                    price: item.price || '', // 無價格時保持空白供手動輸入
+                    price: item.price || '',
                     note: item.note || '',
-                    thumb: thumbUrl
+                    thumb
                 });
             }
             return results;
         }
 
-        function saveToHistory(items) {
+        function saveHistory(items) {
             let history = JSON.parse(localStorage.getItem('all_shopping_history') || '[]');
-            history.unshift({ time: new Date().toLocaleString(), items: items });
+            history.unshift({ time: new Date().toLocaleString(), items });
             localStorage.setItem('all_shopping_history', JSON.stringify(history));
         }
 
@@ -631,7 +429,7 @@
             pageTitle.innerText = "日本購物小清單";
             mainContainer.innerHTML = `
                 <div class="upload-section">
-                    <label for="file-input" class="file-label">＋ 拍攝或上傳商品照片</label>
+                    <label for="file-input" class="file-label">⛩️ 拍攝或上傳商品照片</label>
                     <input type="file" id="file-input" accept="image/*">
                     <div id="loading">⚡ AI 辨識處理中...</div>
                     <div id="error-msg">❌ 辨識失敗，請再試一次</div>
@@ -645,152 +443,100 @@
         }
 
         function renderHomeItems(items) {
-            const section = document.getElementById('result-card-section');
-            const listUl = document.getElementById('shopping-list');
-            listUl.innerHTML = '';
-            if (items.length === 0) {
-                section.style.display = 'none';
-            } else {
-                section.style.display = 'block';
-                items.forEach(item => listUl.appendChild(createItemNode(item, 'home')));
-            }
+            const sec = document.getElementById('result-card-section');
+            const ul = document.getElementById('shopping-list');
+            ul.innerHTML = '';
+            if (!items.length) { sec.style.display = 'none'; return; }
+            sec.style.display = 'block';
+            items.forEach(item => ul.appendChild(createItemNode(item, 'home')));
         }
 
         function showHistoryView() {
             toggleDrawer(false);
             pageTitle.innerText = "價格庫";
-            mainContainer.innerHTML = `
-                <div class="card-section">
-                    <div class="card-header">所有拍照紀錄</div>
-                    <div id="history-content" style="margin-top: 10px;"></div>
-                </div>
-            `;
             const history = JSON.parse(localStorage.getItem('all_shopping_history') || '[]');
+            mainContainer.innerHTML = `<div class="card-section"><div class="card-header">所有拍照紀錄</div><div id="history-content" style="margin-top:10px;"></div></div>`;
             const container = document.getElementById('history-content');
-            if (history.length === 0) {
-                container.innerHTML = '<p style="color: var(--text-sub); font-size: 0.9em;"><em>尚無價格庫紀錄</em></p>';
-                return;
-            }
+            if (!history.length) { container.innerHTML = '<p style="color:var(--text-sub); font-size:0.9em;"><em>尚無價格庫紀錄</em></p>'; return; }
 
-            history.forEach((batch, batchIdx) => {
+            history.forEach((batch, bIdx) => {
                 const group = document.createElement('div');
                 group.style.marginBottom = "16px";
                 group.innerHTML = `<p style="font-weight:600; color:var(--text-sub); font-size:0.85em; margin:0 0 6px 0;">${batch.time}</p>`;
                 const ul = document.createElement('ul');
-                batch.items.forEach(item => ul.appendChild(createItemNode(item, 'history', false, null, batchIdx)));
-                group.appendChild(ul);
-                container.appendChild(group);
+                batch.items.forEach(item => ul.appendChild(createItemNode(item, 'history', false, null, bIdx)));
+                group.appendChild(ul); container.appendChild(group);
             });
         }
 
-        function createItemNode(item, mode = 'home', isChecked = false, customListName = null, batchIdx = null) {
+        function createItemNode(item, mode = 'home', isChecked = false, listName = null, bIdx = null) {
             const li = document.createElement('li');
             if (isChecked) li.classList.add('checked-item');
 
-            if (customListName) {
-                const checkbox = document.createElement('input');
-                checkbox.type = 'checkbox';
-                checkbox.checked = isChecked;
-                checkbox.style.transform = 'scale(1.1)';
-                checkbox.style.cursor = 'pointer';
-                checkbox.onchange = () => toggleCheckItem(customListName, item.id, checkbox.checked);
-                li.appendChild(checkbox);
+            if (listName) {
+                const cb = document.createElement('input');
+                cb.type = 'checkbox'; cb.checked = isChecked; cb.style.cursor = 'pointer';
+                cb.onchange = () => toggleCheck(listName, item.id, cb.checked);
+                li.appendChild(cb);
             }
 
-            const imgThumb = document.createElement('img');
-            imgThumb.className = 'item-thumb';
-            if (item.thumb) imgThumb.src = item.thumb;
-            li.appendChild(imgThumb);
+            const img = document.createElement('img');
+            img.className = 'item-thumb'; if (item.thumb) img.src = item.thumb;
+            li.appendChild(img);
 
-            const detailsDiv = document.createElement('div');
-            detailsDiv.className = 'item-details';
-            
-            // 價格格式處理：支援含稅(未稅)與空白手動輸入
-            let priceHtml = '';
-            if (mode === 'custom') {
-                priceHtml = `<span class="item-price">標示：${item.price || '未標示'}</span>`;
-            } else {
-                priceHtml = `<span class="item-price">${item.price || ''}</span>`;
-            }
-
-            detailsDiv.innerHTML = `
+            const details = document.createElement('div');
+            details.className = 'item-details';
+            const priceText = mode === 'custom' ? `標示：${item.price || '未標示'}` : (item.price || '');
+            details.innerHTML = `
                 <p class="item-name">${item.name}</p>
-                <div>${priceHtml}</div>
+                <div><span class="item-price">${priceText}</span></div>
                 ${item.note ? `<p class="item-note">${item.note}</p>` : ''}
             `;
 
-            // 自訂清單額外加入「實際購買價格」輸入欄位
             if (mode === 'custom') {
-                const purchaseDiv = document.createElement('div');
-                purchaseDiv.className = 'purchase-input-group';
-                purchaseDiv.innerHTML = `<span>實買:</span>`;
-                const purchaseInput = document.createElement('input');
-                purchaseInput.type = 'text';
-                purchaseInput.className = 'purchase-input';
-                purchaseInput.placeholder = '輸入價格';
-                purchaseInput.value = item.purchasePrice || '';
-                purchaseInput.onchange = () => updatePurchasePrice(customListName, item.id, purchaseInput.value);
-                purchaseDiv.appendChild(purchaseInput);
-                detailsDiv.appendChild(purchaseDiv);
+                const pGroup = document.createElement('div');
+                pGroup.className = 'purchase-input-group';
+                pGroup.innerHTML = `<span>實買:</span>`;
+                const pInput = document.createElement('input');
+                pInput.type = 'text'; pInput.className = 'purchase-input'; pInput.placeholder = '輸入價格';
+                pInput.value = item.purchasePrice || '';
+                pInput.onchange = () => updatePurchasePrice(listName, item.id, pInput.value);
+                pGroup.appendChild(pInput);
+                details.appendChild(pGroup);
             }
+            li.appendChild(details);
 
-            li.appendChild(detailsDiv);
-
-            const actionsDiv = document.createElement('div');
-            actionsDiv.className = 'item-actions';
-
+            const actions = document.createElement('div');
+            actions.className = 'item-actions';
             if (mode === 'home' || mode === 'history') {
                 const addBtn = document.createElement('button');
-                addBtn.className = 'action-btn';
-                addBtn.innerText = '＋ 加入';
-                addBtn.onclick = () => openAddToListModal(item);
-                actionsDiv.appendChild(addBtn);
-
-                const delBtn = document.createElement('button');
-                delBtn.className = 'action-btn danger-btn';
-                delBtn.innerText = '刪除';
-                delBtn.onclick = () => {
-                    if (mode === 'home') {
-                        li.remove();
-                        const listUl = document.getElementById('shopping-list');
-                        if (listUl.children.length === 0) {
-                            document.getElementById('result-card-section').style.display = 'none';
-                        }
-                    } else if (mode === 'history') {
-                        deleteHistoryItem(batchIdx, item.id);
-                    }
-                };
-                actionsDiv.appendChild(delBtn);
-            } else if (mode === 'custom') {
-                const delBtn = document.createElement('button');
-                delBtn.className = 'action-btn danger-btn';
-                delBtn.innerText = '刪除';
-                delBtn.onclick = () => deleteCustomListItem(customListName, item.id);
-                actionsDiv.appendChild(delBtn);
+                addBtn.className = 'action-btn'; addBtn.innerText = '＋ 加入';
+                addBtn.onclick = () => openAddModal(item);
+                actions.appendChild(addBtn);
             }
-
-            li.appendChild(actionsDiv);
+            const delBtn = document.createElement('button');
+            delBtn.className = 'action-btn danger-btn'; delBtn.innerText = '刪除';
+            delBtn.onclick = () => {
+                if (mode === 'home') { li.remove(); if (!document.getElementById('shopping-list').children.length) document.getElementById('result-card-section').style.display = 'none'; }
+                else if (mode === 'history') deleteHistoryItem(bIdx, item.id);
+                else if (mode === 'custom') deleteCustomItem(listName, item.id);
+            };
+            actions.appendChild(delBtn);
+            li.appendChild(actions);
             return li;
         }
 
         function renderCustomListsMenu() {
-            const menuContainer = document.getElementById('custom-lists-menu');
+            const container = document.getElementById('custom-lists-menu');
             const lists = JSON.parse(localStorage.getItem('custom_shopping_lists') || '{}');
             const keys = Object.keys(lists);
-
-            menuContainer.innerHTML = '';
-            if (keys.length === 0) {
-                menuContainer.innerHTML = '<p style="font-size:0.85em; color:var(--text-sub); padding: 4px 12px;">尚未建立清單</p>';
-                return;
-            }
-
-            keys.forEach(listName => {
+            container.innerHTML = keys.length ? '' : '<p style="font-size:0.85em; color:var(--text-sub); padding:4px 12px;">尚未建立清單</p>';
+            keys.forEach(name => {
                 const a = document.createElement('a');
-                a.href = '#';
-                a.className = 'menu-item-link';
-                a.innerText = `${listName} (${lists[listName].length})`;
-                a.onclick = () => showCustomListView(listName);
-                menuContainer.appendChild(a);
+                a.href = '#'; a.className = 'menu-item-link';
+                a.innerText = `${name} (${lists[name].length})`;
+                a.onclick = () => showCustomListView(name);
+                container.appendChild(a);
             });
         }
 
@@ -798,203 +544,119 @@
             const name = prompt('請輸入新清單名稱：');
             if (!name) return;
             let lists = JSON.parse(localStorage.getItem('custom_shopping_lists') || '{}');
-            if (lists[name]) {
-                alert('此清單名稱已存在');
-                return;
-            }
+            if (lists[name]) { alert('名稱已存在'); return; }
             lists[name] = [];
             localStorage.setItem('custom_shopping_lists', JSON.stringify(lists));
-            renderCustomListsMenu();
-            showCustomListView(name);
+            renderCustomListsMenu(); showCustomListView(name);
         }
 
-        function openAddToListModal(item) {
-            let lists = JSON.parse(localStorage.getItem('custom_shopping_lists') || '{}');
+        function openAddModal(item) {
+            const lists = JSON.parse(localStorage.getItem('custom_shopping_lists') || '{}');
             const keys = Object.keys(lists);
-            if (keys.length === 0) {
-                alert('請先在側邊欄選單建立至少一個購物清單');
-                return;
-            }
+            if (!keys.length) { alert('請先建立至少一個購物清單'); return; }
             selectedItemForAdd = item;
-            modalListContainer.innerHTML = '';
-            
+            const container = document.getElementById('modal-list-container');
+            container.innerHTML = '';
             keys.forEach(k => {
                 const div = document.createElement('div');
-                div.className = 'modal-list-item';
-                div.innerText = k;
-                div.onclick = () => confirmAddItemToList(k);
-                modalListContainer.appendChild(div);
-            });
-
-            modal.classList.add('show');
-            overlay.classList.add('show');
-        }
-
-        function closeModal() {
-            modal.classList.remove('show');
-            overlay.classList.remove('show');
-            selectedItemForAdd = null;
-        }
-
-        function confirmAddItemToList(targetList) {
-            if (!selectedItemForAdd) return;
-            let lists = JSON.parse(localStorage.getItem('custom_shopping_lists') || '{}');
-            
-            if (lists[targetList]) {
-                const exists = lists[targetList].some(e => e.item.id === selectedItemForAdd.id);
-                if (exists) {
-                    alert('此商品已經在清單中了！');
-                    closeModal();
-                    return;
-                }
-                // 儲存時保留 purchasePrice 欄位
-                lists[targetList].push({ item: { ...selectedItemForAdd, purchasePrice: '' }, checked: false });
-                localStorage.setItem('custom_shopping_lists', JSON.stringify(lists));
-                alert(`已加入「${targetList}」`);
-            }
-            closeModal();
-        }
-
-        function openPickFromHistoryModal(listName) {
-            activeCustomListForAdding = listName;
-            pickModalTitle.innerText = `從價格庫挑選商品`;
-            pickModalListContainer.innerHTML = '';
-
-            let history = JSON.parse(localStorage.getItem('all_shopping_history') || '[]');
-            let allItemsMap = new Map();
-            history.forEach(batch => {
-                batch.items.forEach(item => {
-                    if (!allItemsMap.has(item.id)) {
-                        allItemsMap.set(item.id, item);
+                div.className = 'modal-list-item'; div.innerText = k;
+                div.onclick = () => {
+                    if (lists[k].some(e => e.item.id === item.id)) alert('已在清單中！');
+                    else {
+                        lists[k].push({ item: { ...item, purchasePrice: '' }, checked: false });
+                        localStorage.setItem('custom_shopping_lists', JSON.stringify(lists));
+                        alert(`已加入「${k}」`);
                     }
-                });
+                    closeAllOverlays();
+                };
+                container.appendChild(div);
             });
-
-            const uniqueItems = Array.from(allItemsMap.values());
-            if (uniqueItems.length === 0) {
-                pickModalListContainer.innerHTML = '<p style="text-align:center; color:var(--text-sub); font-size:0.9em; padding:20px;">價格庫中尚無任何商品，請先拍攝商品照片</p>';
-            } else {
-                uniqueItems.forEach(item => {
-                    const row = document.createElement('div');
-                    row.className = 'modal-item-row';
-                    row.innerHTML = `
-                        <div class="modal-item-info">
-                            <img src="${item.thumb || ''}" onerror="this.style.display='none'">
-                            <div class="modal-item-text">${item.name} <br><span style="color:#c2185b; font-weight:normal;">${item.price || '未標示'}</span></div>
-                        </div>
-                    `;
-                    const addBtn = document.createElement('button');
-                    addBtn.className = 'action-btn';
-                    addBtn.innerText = '＋ 加入';
-                    addBtn.onclick = () => {
-                        addItemDirectlyToCustomList(listName, item);
-                    };
-                    row.appendChild(addBtn);
-                    pickModalListContainer.appendChild(row);
-                });
-            }
-
-            pickModal.classList.add('show');
-            overlay.classList.add('show');
+            modal.classList.add('show'); overlay.classList.add('show');
         }
 
-        function closePickModal() {
-            pickModal.classList.remove('show');
-            overlay.classList.remove('show');
-            activeCustomListForAdding = null;
-        }
-
-        function addItemDirectlyToCustomList(listName, item) {
-            let lists = JSON.parse(localStorage.getItem('custom_shopping_lists') || '{}');
-            if (lists[listName]) {
-                const exists = lists[listName].some(e => e.item.id === item.id);
-                if (exists) {
-                    alert('此商品已經在清單中了！');
-                    return;
-                }
-                lists[listName].push({ item: { ...item, purchasePrice: '' }, checked: false });
-                localStorage.setItem('custom_shopping_lists', JSON.stringify(lists));
-                showCustomListView(listName);
-                closePickModal();
-            }
-        }
-
-        function showCustomListView(listName) {
-            toggleDrawer(false);
-            pageTitle.innerText = listName;
+        function showCustomListView(name) {
+            toggleDrawer(false); pageTitle.innerText = name;
             mainContainer.innerHTML = `
                 <div class="card-section">
-                    <div class="card-header" style="padding-bottom: 8px;">
+                    <div class="card-header" style="padding-bottom:8px;">
                         <span>清單項目</span>
                         <div style="display:flex; gap:6px;">
-                            <button class="action-btn" onclick="openPickFromHistoryModal('${listName}')">＋ 從價格庫加入</button>
-                            <button class="action-btn danger-btn" onclick="deleteCustomList('${listName}')">刪除清單</button>
+                            <button class="action-btn" onclick="openPickModal('${name}')">＋ 從價格庫加入</button>
+                            <button class="action-btn danger-btn" onclick="deleteList('${name}')">刪除清單</button>
                         </div>
                     </div>
-                    <ul id="custom-list-items" style="margin-top: 10px;"></ul>
+                    <ul id="custom-list-items" style="margin-top:10px;"></ul>
                 </div>
             `;
-
-            let lists = JSON.parse(localStorage.getItem('custom_shopping_lists') || '{}');
-            const items = lists[listName] || [];
+            const lists = JSON.parse(localStorage.getItem('custom_shopping_lists') || '{}');
+            const items = lists[name] || [];
             const ul = document.getElementById('custom-list-items');
-
-            if (items.length === 0) {
-                ul.innerHTML = '<li><em style="color: var(--text-sub); font-size: 0.9em;">此清單目前沒有物品，可點擊上方「＋ 從價格庫加入」</em></li>';
-                return;
-            }
-
-            items.forEach((entry) => {
-                ul.appendChild(createItemNode(entry.item, 'custom', entry.checked, listName));
-            });
+            if (!items.length) { ul.innerHTML = '<li><em style="color:var(--text-sub); font-size:0.9em;">此清單目前沒有物品</em></li>'; return; }
+            items.forEach(e => ul.appendChild(createItemNode(e.item, 'custom', e.checked, name)));
         }
 
-        function toggleCheckItem(listName, itemId, isChecked) {
+        function openPickModal(listName) {
+            activeCustomListForAdding = listName;
+            const container = document.getElementById('pick-modal-list-container');
+            container.innerHTML = '';
+            const history = JSON.parse(localStorage.getItem('all_shopping_history') || '[]');
+            let map = new Map();
+            history.forEach(b => b.items.forEach(i => map.set(i.id, i)));
+            const items = Array.from(map.values());
+            
+            if (!items.length) {
+                container.innerHTML = '<p style="text-align:center; color:var(--text-sub); font-size:0.9em; padding:20px;">價格庫中尚無商品</p>';
+            } else {
+                items.forEach(i => {
+                    const row = document.createElement('div'); row.className = 'modal-item-row';
+                    row.innerHTML = `<div class="modal-item-info"><img src="${i.thumb || ''}" onerror="this.style.display='none'"><div class="modal-item-text">${i.name}<br><span style="color:var(--theme-primary); font-weight:normal;">${i.price || '未標示'}</span></div></div>`;
+                    const btn = document.createElement('button'); btn.className = 'action-btn'; btn.innerText = '＋ 加入';
+                    btn.onclick = () => {
+                        let lists = JSON.parse(localStorage.getItem('custom_shopping_lists') || '{}');
+                        if (lists[listName].some(e => e.item.id === i.id)) { alert('已在清單中！'); return; }
+                        lists[listName].push({ item: { ...i, purchasePrice: '' }, checked: false });
+                        localStorage.setItem('custom_shopping_lists', JSON.stringify(lists));
+                        showCustomListView(listName); closeAllOverlays();
+                    };
+                    row.appendChild(btn); container.appendChild(row);
+                });
+            }
+            pickModal.classList.add('show'); overlay.classList.add('show');
+        }
+
+        function toggleCheck(listName, itemId, val) {
             let lists = JSON.parse(localStorage.getItem('custom_shopping_lists') || '{}');
-            if (lists[listName]) {
-                const target = lists[listName].find(e => e.item.id === itemId);
-                if (target) {
-                    target.checked = isChecked;
-                    localStorage.setItem('custom_shopping_lists', JSON.stringify(lists));
-                    showCustomListView(listName);
-                }
-            }
+            const target = lists[listName]?.find(e => e.item.id === itemId);
+            if (target) { target.checked = val; localStorage.setItem('custom_shopping_lists', JSON.stringify(lists)); showCustomListView(listName); }
         }
 
-        function updatePurchasePrice(listName, itemId, priceVal) {
+        function updatePurchasePrice(listName, itemId, val) {
             let lists = JSON.parse(localStorage.getItem('custom_shopping_lists') || '{}');
-            if (lists[listName]) {
-                const target = lists[listName].find(e => e.item.id === itemId);
-                if (target) {
-                    target.item.purchasePrice = priceVal;
-                    localStorage.setItem('custom_shopping_lists', JSON.stringify(lists));
-                }
-            }
+            const target = lists[listName]?.find(e => e.item.id === itemId);
+            if (target) { target.item.purchasePrice = val; localStorage.setItem('custom_shopping_lists', JSON.stringify(lists)); }
         }
 
-        function deleteHistoryItem(batchIdx, itemId) {
+        function deleteHistoryItem(bIdx, itemId) {
             let history = JSON.parse(localStorage.getItem('all_shopping_history') || '[]');
-            if (history[batchIdx]) {
-                history[batchIdx].items = history[batchIdx].items.filter(item => item.id !== itemId);
-                if (history[batchIdx].items.length === 0) {
-                    history.splice(batchIdx, 1);
-                }
+            if (history[bIdx]) {
+                history[bIdx].items = history[bIdx].items.filter(i => i.id !== itemId);
+                if (!history[bIdx].items.length) history.splice(bIdx, 1);
                 localStorage.setItem('all_shopping_history', JSON.stringify(history));
                 showHistoryView();
             }
         }
 
-        function deleteCustomListItem(listName, itemId) {
+        function deleteCustomItem(listName, itemId) {
             let lists = JSON.parse(localStorage.getItem('custom_shopping_lists') || '{}');
             if (lists[listName]) {
-                lists[listName] = lists[listName].filter(entry => entry.item.id !== itemId);
+                lists[listName] = lists[listName].filter(e => e.item.id !== itemId);
                 localStorage.setItem('custom_shopping_lists', JSON.stringify(lists));
                 showCustomListView(listName);
             }
         }
 
-        function deleteCustomList(listName) {
-            if (confirm(`確定刪除整本「${listName}」清單？`)) {
+        function deleteList(listName) {
+            if (confirm(`確定刪除「${listName}」？`)) {
                 let lists = JSON.parse(localStorage.getItem('custom_shopping_lists') || '{}');
                 delete lists[listName];
                 localStorage.setItem('custom_shopping_lists', JSON.stringify(lists));
@@ -1002,9 +664,7 @@
             }
         }
 
-        if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('sw.js').catch(err => console.log('SW 註冊失敗', err));
-        }
+        if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
     </script>
 </body>
 </html>
